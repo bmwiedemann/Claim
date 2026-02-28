@@ -10,6 +10,7 @@ import net.minecraftforge.fml.util.thread.SidedThreadGroups;
 import net.minecraftforge.server.ServerLifecycleHooks;
 import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
+import net.yigitguven.claim.ModConfig;
 
 import java.io.File;
 import java.io.FileReader;
@@ -17,9 +18,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Manages all claims in the world.
@@ -55,8 +59,8 @@ public class ClaimManager {
             return false; // Already claimed
         }
 
-        // Optional: Enforcement of claim limits
-        if (getPlayerClaimCount(level, playerUUID) >= 16) {
+        // Enforcement of claim limits from config
+        if (getPlayerClaimCount(level, playerUUID) >= ModConfig.MAX_CLAIMS.get()) {
              return false; // Limit reached
         }
 
@@ -98,6 +102,57 @@ public class ClaimManager {
                 .count();
     }
 
+    public int clearPlayerClaims(Level level, UUID playerUUID) {
+        String dimension = level.dimension().location().toString();
+        Map<Long, ClaimData> dimensionClaims = claims.get(dimension);
+        if (dimensionClaims == null) return 0;
+
+        int before = dimensionClaims.size();
+        dimensionClaims.entrySet().removeIf(entry -> entry.getValue().getOwnerUUID().equals(playerUUID));
+        int cleared = before - dimensionClaims.size();
+        
+        if (cleared > 0) save();
+        return cleared;
+    }
+
+    public boolean renameClaim(Level level, ChunkPos pos, UUID playerUUID, String newName) {
+        ClaimData data = getClaim(level, pos);
+        if (data == null || !data.getOwnerUUID().equals(playerUUID)) return false;
+
+        if (ModConfig.REQUIRE_UNIQUE_NAMES.get()) {
+            Optional<ClaimData> existing = getAllClaims().values().stream()
+                    .flatMap(m -> m.values().stream())
+                    .filter(d -> d.getName() != null && 
+                            (ModConfig.CASE_SENSITIVE_NAMES.get() ? 
+                                    d.getName().equals(newName) : 
+                                    d.getName().equalsIgnoreCase(newName)))
+                    .findAny();
+            
+            if (existing.isPresent()) return false; // Name taken
+        }
+
+        data.setName(newName);
+        save();
+        return true;
+    }
+
+    public Optional<ClaimTarget> findClaimByName(String name) {
+        for (Map.Entry<String, Map<Long, ClaimData>> dimensionEntry : claims.entrySet()) {
+            for (Map.Entry<Long, ClaimData> claimEntry : dimensionEntry.getValue().entrySet()) {
+                ClaimData data = claimEntry.getValue();
+                if (data.getName() != null && 
+                        (ModConfig.CASE_SENSITIVE_NAMES.get() ? 
+                                data.getName().equals(name) : 
+                                data.getName().equalsIgnoreCase(name))) {
+                    return Optional.of(new ClaimTarget(dimensionEntry.getKey(), new ChunkPos(claimEntry.getKey())));
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    public record ClaimTarget(String dimension, ChunkPos pos) {}
+
     public ClaimData getClaim(Level level, ChunkPos pos) {
         String dimension = level.dimension().location().toString();
         Map<Long, ClaimData> dimensionClaims = claims.get(dimension);
@@ -105,10 +160,10 @@ public class ClaimManager {
         return dimensionClaims.get(pos.toLong());
     }
 
-    public boolean isProtected(Level level, ChunkPos pos, UUID playerUUID) {
+    public boolean isProtected(Level level, ChunkPos pos, UUID playerUUID, ClaimData.PermissionLevel levelRequired) {
         ClaimData data = getClaim(level, pos);
         if (data == null) return false; // Not claimed
-        return !data.isTrusted(playerUUID);
+        return !data.isTrusted(playerUUID, levelRequired);
     }
 
     /**

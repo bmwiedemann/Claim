@@ -1,0 +1,6 @@
+{
+    "item.claim.surveyor_compass": "Surveyor's Compass",
+    "item.claim.surveyor_compass.tooltip": "Right-click to toggle borders. Use on blocks for chunk info.",
+    "item.claim.land_permit": "Land Permit (Deed)",
+    "item.claim.land_permit.tooltip": "Shift-right-click to claim chunk. Hold to rename with /claim rename."
+}
