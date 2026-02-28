@@ -50,7 +50,11 @@ public class ClaimManager {
     /**
      * Claims a chunk for a player.
      */
-    public boolean claim(Level level, ChunkPos pos, UUID playerUUID, String playerName) {
+    public boolean claim(Level level, ChunkPos pos, UUID playerUUID, String playerName, String claimName) {
+        if (ModConfig.REQUIRE_NAME_ON_CLAIM.get() && (claimName == null || claimName.isEmpty())) {
+            return false;
+        }
+
         String dimension = level.dimension().location().toString();
         Map<Long, ClaimData> dimensionClaims = claims.computeIfAbsent(dimension, k -> new ConcurrentHashMap<>());
         
@@ -64,7 +68,9 @@ public class ClaimManager {
              return false; // Limit reached
         }
 
-        dimensionClaims.put(chunkKey, new ClaimData(playerUUID, playerName));
+        ClaimData newData = new ClaimData(playerUUID, playerName);
+        if (claimName != null) newData.setName(claimName);
+        dimensionClaims.put(chunkKey, newData);
         save();
         return true;
     }
@@ -120,7 +126,7 @@ public class ClaimManager {
         if (data == null || !data.getOwnerUUID().equals(playerUUID)) return false;
 
         if (ModConfig.REQUIRE_UNIQUE_NAMES.get()) {
-            Optional<ClaimData> existing = getAllClaims().values().stream()
+            Optional<ClaimData> existing = claims.values().stream()
                     .flatMap(m -> m.values().stream())
                     .filter(d -> d.getName() != null && 
                             (ModConfig.CASE_SENSITIVE_NAMES.get() ? 

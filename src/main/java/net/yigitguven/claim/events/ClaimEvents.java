@@ -14,6 +14,11 @@ import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.yigitguven.claim.Claim;
+import net.yigitguven.claim.ModConfig;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.Container;
+import net.minecraft.world.level.LevelAccessor;
 
 /**
  * Handles protection events for claimed chunks.
@@ -23,7 +28,7 @@ public class ClaimEvents {
 
     @SubscribeEvent
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
-        if (ModConfig.PROTECT_BLOCKS.get() && isActionRestricted(event.getLevel().getChunk(event.getPos()).getPos(), event.getPlayer(), (Level) event.getLevel(), ClaimData.PermissionLevel.BUILD)) {
+        if (ModConfig.PROTECT_BLOCKS.get() && isActionRestricted(event.getPos(), event.getPlayer(), (Level) event.getLevel(), ClaimData.PermissionLevel.BUILD)) {
             event.setCanceled(true);
             sendDenyMessage(event.getPlayer());
         }
@@ -32,7 +37,7 @@ public class ClaimEvents {
     @SubscribeEvent
     public static void onBlockPlace(BlockEvent.EntityPlaceEvent event) {
         if (ModConfig.PROTECT_BLOCKS.get() && event.getEntity() instanceof Player player) {
-            if (isActionRestricted(event.getLevel().getChunk(event.getPos()).getPos(), player, (Level) event.getLevel(), ClaimData.PermissionLevel.BUILD)) {
+            if (isActionRestricted(event.getPos(), player, (Level) event.getLevel(), ClaimData.PermissionLevel.BUILD)) {
                 event.setCanceled(true);
                 sendDenyMessage(player);
             }
@@ -44,7 +49,7 @@ public class ClaimEvents {
         ClaimData.PermissionLevel required = isContainer(event.getLevel(), event.getPos()) ?
                 ClaimData.PermissionLevel.CONTAINERS : ClaimData.PermissionLevel.INTERACT;
 
-        if (ModConfig.PROTECT_INTERACT.get() && isActionRestricted(event.getLevel().getChunk(event.getPos()).getPos(), event.getEntity(), event.getLevel(), required)) {
+        if (ModConfig.PROTECT_INTERACT.get() && isActionRestricted(event.getPos(), event.getEntity(), event.getLevel(), required)) {
             event.setCanceled(true);
             sendDenyMessage(event.getEntity());
         }
@@ -60,15 +65,21 @@ public class ClaimEvents {
         }
     }
 
-    private static boolean isActionRestricted(ChunkPos pos, Player player, Level level) {
+    private static boolean isActionRestricted(BlockPos blockPos, Player player, Level level, ClaimData.PermissionLevel perm) {
         if (player.hasPermissions(2)) return false; // Admin bypass
-        return ClaimManager.getInstance().isProtected(level, pos, player.getUUID());
+        ChunkPos pos = new ChunkPos(blockPos);
+        return ClaimManager.getInstance().isProtected(level, pos, player.getUUID(), perm);
+    }
+
+    private static boolean isContainer(Level level, BlockPos pos) {
+        BlockEntity be = level.getBlockEntity(pos);
+        return be instanceof Container;
     }
 
     private static void sendDenyMessage(Player player) {
         if (player instanceof ServerPlayer) {
             player.sendSystemMessage(Component.literal("You do not have permission to do that here!")
-                    .withStyle(ChatFormatting.RED), true);
+                    .withStyle(ChatFormatting.RED));
         }
     }
 }

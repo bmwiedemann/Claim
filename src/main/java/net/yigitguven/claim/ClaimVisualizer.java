@@ -35,6 +35,8 @@ public class ClaimVisualizer {
         showAllMode = false;
     }
 
+    private static ChunkPos lastPos = null;
+
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
@@ -43,8 +45,16 @@ public class ClaimVisualizer {
         Player player = mc.player;
         if (player == null || mc.level == null) return;
 
+        ChunkPos currentPos = player.chunkPosition();
+        
+        // Clear ad-hoc visuals when moving to a new chunk to avoid "stacking"
+        if (lastPos != null && !lastPos.equals(currentPos)) {
+            ACTIVE_VISUALS.clear();
+        }
+        lastPos = currentPos;
+
         if (showAllMode) {
-            drawChunkBorders(mc.level, player.chunkPosition());
+            drawChunkBorders(mc.level, currentPos);
         }
 
         for (ChunkPos pos : ACTIVE_VISUALS) {

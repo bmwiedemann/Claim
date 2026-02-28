@@ -14,6 +14,8 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
+import net.yigitguven.claim.Claim;
+import net.yigitguven.claim.ModConfig;
 
 /**
  * Handles mod commands.
@@ -22,7 +24,9 @@ public class ClaimCommands {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("claim")
-            .executes(context -> claimChunk(context.getSource()))
+            .executes(context -> claimChunk(context.getSource(), null))
+            .then(Commands.argument("name", StringArgumentType.string())
+                .executes(context -> claimChunk(context.getSource(), StringArgumentType.getString(context, "name"))))
             .then(Commands.literal("rename")
                 .then(Commands.argument("name", StringArgumentType.string())
                     .executes(context -> renameClaim(context.getSource(), StringArgumentType.getString(context, "name")))))
@@ -59,21 +63,26 @@ public class ClaimCommands {
         );
     }
 
-    private static int claimChunk(CommandSourceStack source) {
+    private static int claimChunk(CommandSourceStack source, String name) {
         if (source.getEntity() instanceof ServerPlayer player) {
             if (!ModConfig.USE_COMMANDS_FOR_CLAIM.get()) {
-                source.sendFailure(Component.literal("Command-based claiming is disabled on this server. Use the Land Surveyor's Wand.")
+                source.sendFailure(Component.literal("Command-based claiming is disabled on this server. Use a Land Permit.")
                         .withStyle(ChatFormatting.RED));
                 return 0;
             }
 
             ChunkPos pos = player.chunkPosition();
-            if (ClaimManager.getInstance().claim(player.level(), pos, player.getUUID(), player.getScoreboardName())) {
+            if (ClaimManager.getInstance().claim(player.level(), pos, player.getUUID(), player.getScoreboardName(), name)) {
                 source.sendSuccess(() -> Component.literal("Successfully claimed this chunk!")
                         .withStyle(ChatFormatting.GREEN), false);
             } else {
-                source.sendFailure(Component.literal("Failed to claim (already claimed or limit reached).")
-                        .withStyle(ChatFormatting.RED));
+                String error = "Failed to claim.";
+                if (ModConfig.REQUIRE_NAME_ON_CLAIM.get() && name == null) {
+                    error = "You must provide a name for your claim! Use /claim <name>";
+                } else {
+                    error = "Failed to claim (already claimed or limit reached).";
+                }
+                source.sendFailure(Component.literal(error).withStyle(ChatFormatting.RED));
             }
         }
         return 1;
@@ -222,7 +231,7 @@ public class ClaimCommands {
     private static int toggleVisuals(CommandSourceStack source) {
         if (source.getEntity() instanceof ServerPlayer player) {
             // This is a client-side thing, so we notify the player
-            source.sendSuccess(() -> Component.literal("Visualization toggled. (Hold Claiming Tool for persistent visuals)")
+            source.sendSuccess(() -> Component.literal("Visualization toggled. (Use Surveyor's Compass for persistent visuals)")
                     .withStyle(ChatFormatting.AQUA), false);
         }
         return 1;

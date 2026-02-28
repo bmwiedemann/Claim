@@ -15,9 +15,11 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 import net.yigitguven.claim.core.ClaimData;
 import net.yigitguven.claim.core.ClaimManager;
+import net.yigitguven.claim.ClaimVisualizer;
+import net.yigitguven.claim.ModConfig;
 
 public class SurveyorCompassItem extends Item {
-    public SurveyorCompassItem(Properties properties) {
+    public SurveyorCompassItem(Item.Properties properties) {
         super(properties);
     }
 

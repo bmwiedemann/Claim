@@ -15,7 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 public class LandPermitItem extends Item {
-    public LandPermitItem(Properties properties) {
+    public LandPermitItem(Item.Properties properties) {
         super(properties);
     }
 
@@ -36,12 +36,17 @@ public class LandPermitItem extends Item {
 
                 ChunkPos pos = level.getChunkAt(context.getClickedPos()).getPos();
                 // Claim logic
-                if (ClaimManager.getInstance().claim(level, pos, player.getUUID(), player.getScoreboardName())) {
+                if (ClaimManager.getInstance().claim(level, pos, player.getUUID(), player.getScoreboardName(), null)) {
                     player.sendSystemMessage(Component.literal("Successfully claimed this chunk!")
                             .withStyle(ChatFormatting.GREEN));
                 } else {
-                    player.sendSystemMessage(Component.literal("Failed to claim (already claimed or limit reached).")
-                            .withStyle(ChatFormatting.RED));
+                    String error = "Failed to claim.";
+                    if (ModConfig.REQUIRE_NAME_ON_CLAIM.get()) {
+                        error = "This server requires a name for every claim. Use /claim <name> while holding this permit.";
+                    } else {
+                        error = "Failed to claim (already claimed, limit reached, or invalid).";
+                    }
+                    player.sendSystemMessage(Component.literal(error).withStyle(ChatFormatting.RED));
                 }
             } else {
                 player.sendSystemMessage(Component.literal("Use /claim rename <name> while holding this permit to rename your claim.")

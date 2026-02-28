@@ -23,13 +23,20 @@ public class ModConfig {
     public static final ForgeConfigSpec.ConfigValue<Integer> TELEPORT_COOLDOWN;
     public static final ForgeConfigSpec.ConfigValue<Boolean> CANCEL_TP_ON_MOVE;
     public static final ForgeConfigSpec.ConfigValue<Boolean> CANCEL_TP_ON_DAMAGE;
+    public static final ForgeConfigSpec.ConfigValue<Boolean> ENABLE_ACTION_BAR_NOTIFICATIONS;
+    public static final ForgeConfigSpec.ConfigValue<Boolean> REQUIRE_NAME_ON_CLAIM;
 
     static {
         BUILDER.push("Claim Mod Settings");
 
-        MAX_CLAIMS = BUILDER
-                .comment("Maximum number of chunks a player can claim. Default: 16")
-                .defineInRange("maxClaims", 16, 1, 1000);
+        MAX_CLAIMS = BUILDER.comment("Maximum chunks a player can claim")
+                .defineInRange("maxClaims", 10, 1, 1000);
+
+        ENABLE_ACTION_BAR_NOTIFICATIONS = BUILDER.comment("Show action bar messages when entering/leaving claims")
+                .define("enableActionBarNotifications", true);
+
+        REQUIRE_NAME_ON_CLAIM = BUILDER.comment("Force players to name their claim during the claiming process")
+                .define("requireNameOnClaim", false);
 
         PROTECT_BLOCKS = BUILDER
                 .comment("Whether to prevent block breaking and placing in claimed chunks. Default: true")
