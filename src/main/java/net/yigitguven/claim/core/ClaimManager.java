@@ -1,0 +1,152 @@
+package net.yigitguven.claim.core;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.LevelResource;
+import net.minecraftforge.fml.util.thread.SidedThreadGroups;
+import net.minecraftforge.server.ServerLifecycleHooks;
+import org.slf4j.Logger;
+import com.mojang.logging.LogUtils;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.lang.reflect.Type;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Manages all claims in the world.
+ */
+public class ClaimManager {
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final String FILE_NAME = "claims.json";
+    
+    // Map of Dimension -> (ChunkPos -> ClaimData)
+    private final Map<String, Map<Long, ClaimData>> claims = new ConcurrentHashMap<>();
+
+    private static ClaimManager instance;
+
+    public static ClaimManager getInstance() {
+        if (instance == null) {
+            instance = new ClaimManager();
+        }
+        return instance;
+    }
+
+    private ClaimManager() {}
+
+    /**
+     * Claims a chunk for a player.
+     */
+    public boolean claim(Level level, ChunkPos pos, UUID playerUUID, String playerName) {
+        String dimension = level.dimension().location().toString();
+        Map<Long, ClaimData> dimensionClaims = claims.computeIfAbsent(dimension, k -> new ConcurrentHashMap<>());
+        
+        long chunkKey = pos.toLong();
+        if (dimensionClaims.containsKey(chunkKey)) {
+            return false; // Already claimed
+        }
+
+        // Optional: Enforcement of claim limits
+        if (getPlayerClaimCount(level, playerUUID) >= 16) {
+             return false; // Limit reached
+        }
+
+        dimensionClaims.put(chunkKey, new ClaimData(playerUUID, playerName));
+        save();
+        return true;
+    }
+
+    /**
+     * Unclaims a chunk.
+     */
+    public boolean unclaim(Level level, ChunkPos pos, UUID playerUUID, boolean isAdmin) {
+        String dimension = level.dimension().location().toString();
+        Map<Long, ClaimData> dimensionClaims = claims.get(dimension);
+        
+        if (dimensionClaims == null) return false;
+
+        long chunkKey = pos.toLong();
+        ClaimData data = dimensionClaims.get(chunkKey);
+        
+        if (data == null) return false;
+
+        if (isAdmin || data.getOwnerUUID().equals(playerUUID)) {
+            dimensionClaims.remove(chunkKey);
+            save();
+            return true;
+        }
+
+        return false;
+    }
+
+    public int getPlayerClaimCount(Level level, UUID playerUUID) {
+        String dimension = level.dimension().location().toString();
+        Map<Long, ClaimData> dimensionClaims = claims.get(dimension);
+        if (dimensionClaims == null) return 0;
+        
+        return (int) dimensionClaims.values().stream()
+                .filter(data -> data.getOwnerUUID().equals(playerUUID))
+                .count();
+    }
+
+    public ClaimData getClaim(Level level, ChunkPos pos) {
+        String dimension = level.dimension().location().toString();
+        Map<Long, ClaimData> dimensionClaims = claims.get(dimension);
+        if (dimensionClaims == null) return null;
+        return dimensionClaims.get(pos.toLong());
+    }
+
+    public boolean isProtected(Level level, ChunkPos pos, UUID playerUUID) {
+        ClaimData data = getClaim(level, pos);
+        if (data == null) return false; // Not claimed
+        return !data.isTrusted(playerUUID);
+    }
+
+    /**
+     * Saves claims to the world's data directory.
+     */
+    public void save() {
+        if (Thread.currentThread().getThreadGroup() != SidedThreadGroups.SERVER) return;
+        
+        Path dataPath = ServerLifecycleHooks.getCurrentServer().getWorldPath(LevelResource.ROOT).resolve("claimmod");
+        File dir = dataPath.toFile();
+        if (!dir.exists()) dir.mkdirs();
+
+        File file = new File(dir, FILE_NAME);
+        try (FileWriter writer = new FileWriter(file)) {
+            GSON.toJson(claims, writer);
+        } catch (IOException e) {
+            LOGGER.error("Failed to save claims!", e);
+        }
+    }
+
+    /**
+     * Loads claims from the world's data directory.
+     */
+    public void load() {
+        Path dataPath = ServerLifecycleHooks.getCurrentServer().getWorldPath(LevelResource.ROOT).resolve("claimmod");
+        File file = dataPath.resolve(FILE_NAME).toFile();
+        
+        if (!file.exists()) return;
+
+        try (FileReader reader = new FileReader(file)) {
+            Type type = new TypeToken<Map<String, Map<Long, ClaimData>>>(){}.getType();
+            Map<String, Map<Long, ClaimData>> loaded = GSON.fromJson(reader, type);
+            if (loaded != null) {
+                claims.clear();
+                claims.putAll(loaded);
+            }
+        } catch (IOException e) {
+            LOGGER.error("Failed to load claims!", e);
+        }
+    }
+}
