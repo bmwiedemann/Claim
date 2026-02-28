@@ -1,0 +1,14 @@
+- Removed MCreator artifacts.
+- Players can now give their claims unique names for easier identification.
+- Added `/claim visit <name>` to quickly travel between named territories.
+- Introduced granular permission levels (`BUILD`, `INTERACT`, `CONTAINERS`, `MANAGE`) for shared access.
+- New item used for claiming and renaming territories.
+- Item for persistent visualization of claimed chunk borders.
+- Visual feedback when crossing claim boundaries.
+- Added `/claim admin unclaim` and configuration reload capabilities.
+- Basic chunk-based land claiming.
+- Owner-only protection for blocks and interactions.
+- Commands: `/claim`, `/unclaim`, `/claim info`.
+- Configuration for max claims and protection toggles.
+- Removed AnCore Lib from dependencies.
+- Rewrote the whole code and made it open-source in [the GitHub Repository](https://github.com/yigit-guven/Claim).

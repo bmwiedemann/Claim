@@ -29,39 +29,39 @@ public class ModConfig {
     static {
         BUILDER.push("Claim Mod Settings");
 
-        MAX_CLAIMS = BUILDER.comment("Maximum chunks a player can claim")
+        MAX_CLAIMS = BUILDER.comment("Maximum number of chunks a player can claim per dimension (e.g., Overworld, Nether, End are counted separately).")
                 .defineInRange("maxClaims", 10, 1, 1000);
 
-        ENABLE_ACTION_BAR_NOTIFICATIONS = BUILDER.comment("Show action bar messages when entering/leaving claims")
+        ENABLE_ACTION_BAR_NOTIFICATIONS = BUILDER.comment("If true, players will see 'Entering: [Claim Name]' or 'Leaving: [Claim Name]' messages in their action bar when crossing borders.")
                 .define("enableActionBarNotifications", true);
 
-        REQUIRE_NAME_ON_CLAIM = BUILDER.comment("Force players to name their claim during the claiming process")
+        REQUIRE_NAME_ON_CLAIM = BUILDER.comment("If true, players cannot claim a chunk unless they provide a name (e.g., /claim MyHome).")
                 .define("requireNameOnClaim", false);
 
         PROTECT_BLOCKS = BUILDER
-                .comment("Whether to prevent block breaking and placing in claimed chunks. Default: true")
+                .comment("If true, players without 'BUILD' trust cannot break or place blocks in claimed territories.")
                 .define("protectBlocks", true);
 
         PROTECT_INTERACT = BUILDER
-                .comment("Whether to prevent block interactions (chests, doors) in claimed chunks. Default: true")
+                .comment("If true, players without sufficient trust cannot interact with blocks (doors, buttons) or open containers (chests, hoppers).")
                 .define("protectInteract", true);
 
         PROTECT_EXPLOSIONS = BUILDER
-                .comment("Whether to prevent explosions from damaging claimed chunks. Default: true")
+                .comment("If true, blocks within claimed territories are immune to all explosion damage (Creeper, TNT, Fireball, etc.).")
                 .define("protectExplosions", true);
 
         BUILDER.push("Claiming Methods");
-        USE_ITEMS_FOR_CLAIM = BUILDER.comment("Allow players to claim using items (surveyor wand).").define("useItems", true);
-        USE_COMMANDS_FOR_CLAIM = BUILDER.comment("Allow players to claim using commands.").define("useCommands", true);
+        USE_ITEMS_FOR_CLAIM = BUILDER.comment("If true, players can use 'Land Permits' to claim and rename chunks.").define("useItems", true);
+        USE_COMMANDS_FOR_CLAIM = BUILDER.comment("If true, players can use the /claim command to secure territory without needing items.").define("useCommands", true);
         BUILDER.pop();
 
         BUILDER.push("Naming & Visiting");
-        REQUIRE_UNIQUE_NAMES = BUILDER.comment("Whether claim names must be unique globally.").define("uniqueNames", true);
-        CASE_SENSITIVE_NAMES = BUILDER.comment("Whether name uniqueness check is case-sensitive.").define("caseSensitive", false);
-        ENABLE_VISIT = BUILDER.comment("Enable the /visit command.").define("enableVisit", true);
-        TELEPORT_COOLDOWN = BUILDER.comment("Seconds to wait before teleporting.").defineInRange("tpCooldown", 3, 0, 60);
-        CANCEL_TP_ON_MOVE = BUILDER.comment("Cancel teleport if the player moves.").define("cancelOnMove", true);
-        CANCEL_TP_ON_DAMAGE = BUILDER.comment("Cancel teleport if the player takes damage.").define("cancelOnDamage", true);
+        REQUIRE_UNIQUE_NAMES = BUILDER.comment("If true, every named claim on the server must have a unique name, regardless of dimension or owner.").define("uniqueNames", true);
+        CASE_SENSITIVE_NAMES = BUILDER.comment("If true, 'MyBase' and 'mybase' will be considered different names for uniqueness checks.").define("caseSensitive", false);
+        ENABLE_VISIT = BUILDER.comment("If true, players can use /claim visit <name> to teleport to named claims (subject to cooldown).").define("enableVisit", true);
+        TELEPORT_COOLDOWN = BUILDER.comment("The delay in seconds a player must wait (without moving or taking damage) before being teleported to a claim.").defineInRange("tpCooldown", 3, 0, 60);
+        CANCEL_TP_ON_MOVE = BUILDER.comment("If true, moving any distance while the teleport timer is active will cancel the teleportation.").define("cancelOnMove", true);
+        CANCEL_TP_ON_DAMAGE = BUILDER.comment("If true, taking any damage while the teleport timer is active will cancel the teleportation.").define("cancelOnDamage", true);
         BUILDER.pop();
 
         BUILDER.pop();
