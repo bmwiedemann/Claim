@@ -82,10 +82,8 @@ The mod can be extensively configured via the `serverconfig/claim-server.toml` f
 
 ## 📜 License & Credits
 
-- **Author**: Yigit Guven
-- **License**: GNU GPLv3
+- **Author**: [Yigit Guven](https://github.com/yigit-guven/)
+- **License**: [GNU GPLv3](LICENSE)
 - **Special Thanks**: Community and all our testers!
-
-![Small Logo](https://raw.githubusercontent.com/yigit-guven/Claim/refs/heads/1.20.1-forge/src/main/resources/logo.png)
 
 > **Pro Tip**: Keep a **Surveyor's Compass** in your hotbar to always stay aware of your territory boundaries!
