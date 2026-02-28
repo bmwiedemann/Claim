@@ -72,8 +72,10 @@ The mod can be extensively configured via the `serverconfig/claim-server.toml` f
 
 ---
 
-## 📥 Community & Support
+## 📥 Downloads & Support
 
+- **Modrinth**: [Download on Modrinth](https://modrinth.com/mod/claim)
+- **CurseForge**: [Download on CurseForge](https://www.curseforge.com/minecraft/mc-mods/claim)
 - **Bug Reports**: Found an issue? Report it on our [GitHub Issue Tracker](https://github.com/yigit-guven/Claim/issues).
 - **Suggestions**: Have an idea for a feature? Create a suggestion via [GitHub Issue Tracker](https://github.com/yigit-guven/Claim/issues)
 - **Discord**: [Join our community](https://discord.gg/aPk7Qs5d4H)
