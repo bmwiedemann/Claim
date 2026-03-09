@@ -4,17 +4,17 @@ import net.yigitguven.claim.commands.ClaimCommands;
 import net.yigitguven.claim.core.ClaimManager;
 import com.mojang.logging.LogUtils;
 import net.minecraft.world.item.Item;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.event.server.ServerStartingEvent;
-import net.minecraftforge.event.server.ServerStoppingEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.DeferredItem;
 import org.slf4j.Logger;
 
 @Mod(Claim.MODID)
@@ -23,24 +23,27 @@ public class Claim
     public static final String MODID = "claim";
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
-    public static final RegistryObject<Item> SURVEYOR_COMPASS = ITEMS.register("surveyor_compass", 
+    public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MODID);
+    public static final DeferredItem<Item> SURVEYOR_COMPASS = ITEMS.register("surveyor_compass", 
             () -> new SurveyorCompassItem(new Item.Properties().stacksTo(1)));
-    public static final RegistryObject<Item> LAND_PERMIT = ITEMS.register("land_permit", 
+    public static final DeferredItem<Item> LAND_PERMIT = ITEMS.register("land_permit", 
             () -> new LandPermitItem(new Item.Properties().stacksTo(16)));
 
-    public Claim(FMLJavaModLoadingContext context)
+    public Claim(IEventBus modEventBus, ModContainer modContainer)
     {
-        IEventBus modEventBus = context.getModEventBus();
-        
         // Register the items
         ITEMS.register(modEventBus);
 
         // Register the config
-        context.registerConfig(net.minecraftforge.fml.config.ModConfig.Type.COMMON, ModConfig.SPEC);
+        modContainer.registerConfig(ModConfig.Type.COMMON, net.yigitguven.claim.ModConfig.SPEC);
         
+        // Register the config screen factory (client only)
+        if (net.neoforged.fml.loading.FMLEnvironment.dist == net.neoforged.api.distmarker.Dist.CLIENT) {
+            net.yigitguven.claim.client.ConfigScreenHelper.registerConfigScreen(modContainer);
+        }
+
         // Register ourselves for server and other game events we are interested in
-        MinecraftForge.EVENT_BUS.register(this);
+        NeoForge.EVENT_BUS.register(this);
     }
 
     @SubscribeEvent

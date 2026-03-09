@@ -6,10 +6,10 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -17,7 +17,7 @@ import java.util.Set;
 /**
  * Client-side system to visualize chunk borders using particles.
  */
-@Mod.EventBusSubscriber(modid = Claim.MODID, value = Dist.CLIENT)
+@EventBusSubscriber(modid = Claim.MODID, value = Dist.CLIENT)
 public class ClaimVisualizer {
     private static final Set<ChunkPos> ACTIVE_VISUALS = new HashSet<>();
     private static boolean showAllMode = false;
@@ -38,8 +38,7 @@ public class ClaimVisualizer {
     private static ChunkPos lastPos = null;
 
     @SubscribeEvent
-    public static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
+    public static void onClientTick(ClientTickEvent.Post event) {
 
         Minecraft mc = Minecraft.getInstance();
         Player player = mc.player;

@@ -1,30 +1,28 @@
 package net.yigitguven.claim;
 
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
-@Mod.EventBusSubscriber(modid = Claim.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class ModConfig {
-    public static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
-    public static final ForgeConfigSpec SPEC;
+    public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
+    public static final ModConfigSpec SPEC;
 
-    public static final ForgeConfigSpec.ConfigValue<Integer> MAX_CLAIMS;
-    public static final ForgeConfigSpec.ConfigValue<Boolean> PROTECT_BLOCKS;
-    public static final ForgeConfigSpec.ConfigValue<Boolean> PROTECT_INTERACT;
-    public static final ForgeConfigSpec.ConfigValue<Boolean> PROTECT_EXPLOSIONS;
+    public static final ModConfigSpec.ConfigValue<Integer> MAX_CLAIMS;
+    public static final ModConfigSpec.ConfigValue<Boolean> PROTECT_BLOCKS;
+    public static final ModConfigSpec.ConfigValue<Boolean> PROTECT_INTERACT;
+    public static final ModConfigSpec.ConfigValue<Boolean> PROTECT_EXPLOSIONS;
 
-    public static final ForgeConfigSpec.ConfigValue<Boolean> USE_ITEMS_FOR_CLAIM;
-    public static final ForgeConfigSpec.ConfigValue<Boolean> USE_COMMANDS_FOR_CLAIM;
+    public static final ModConfigSpec.ConfigValue<Boolean> USE_ITEMS_FOR_CLAIM;
+    public static final ModConfigSpec.ConfigValue<Boolean> USE_COMMANDS_FOR_CLAIM;
     
-    public static final ForgeConfigSpec.ConfigValue<Boolean> REQUIRE_UNIQUE_NAMES;
-    public static final ForgeConfigSpec.ConfigValue<Boolean> CASE_SENSITIVE_NAMES;
+    public static final ModConfigSpec.ConfigValue<Boolean> REQUIRE_UNIQUE_NAMES;
+    public static final ModConfigSpec.ConfigValue<Boolean> CASE_SENSITIVE_NAMES;
     
-    public static final ForgeConfigSpec.ConfigValue<Boolean> ENABLE_VISIT;
-    public static final ForgeConfigSpec.ConfigValue<Integer> TELEPORT_COOLDOWN;
-    public static final ForgeConfigSpec.ConfigValue<Boolean> CANCEL_TP_ON_MOVE;
-    public static final ForgeConfigSpec.ConfigValue<Boolean> CANCEL_TP_ON_DAMAGE;
-    public static final ForgeConfigSpec.ConfigValue<Boolean> ENABLE_ACTION_BAR_NOTIFICATIONS;
-    public static final ForgeConfigSpec.ConfigValue<Boolean> REQUIRE_NAME_ON_CLAIM;
+    public static final ModConfigSpec.ConfigValue<Boolean> ENABLE_VISIT;
+    public static final ModConfigSpec.ConfigValue<Integer> TELEPORT_COOLDOWN;
+    public static final ModConfigSpec.ConfigValue<Boolean> CANCEL_TP_ON_MOVE;
+    public static final ModConfigSpec.ConfigValue<Boolean> CANCEL_TP_ON_DAMAGE;
+    public static final ModConfigSpec.ConfigValue<Boolean> ENABLE_ACTION_BAR_NOTIFICATIONS;
+    public static final ModConfigSpec.ConfigValue<Boolean> REQUIRE_NAME_ON_CLAIM;
 
     static {
         BUILDER.push("Claim Mod Settings");

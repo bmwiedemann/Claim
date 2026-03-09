@@ -11,8 +11,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
 import net.yigitguven.claim.core.ClaimData;
 import net.yigitguven.claim.core.ClaimManager;
 import net.yigitguven.claim.ClaimVisualizer;
@@ -26,7 +24,7 @@ public class SurveyorCompassItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         if (level.isClientSide) {
-            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> ClaimVisualizer::toggleShowAll);
+            ClientHelper.toggleShowAll();
             player.displayClientMessage(Component.literal("Toggled chunk border visualization.")
                     .withStyle(ChatFormatting.AQUA), true);
         }
@@ -54,7 +52,7 @@ public class SurveyorCompassItem extends Item {
                         .withStyle(ChatFormatting.GRAY));
             }
         } else {
-            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClaimVisualizer.addVisual(pos));
+            ClientHelper.addVisual(pos);
         }
 
         return InteractionResult.sidedSuccess(level.isClientSide);

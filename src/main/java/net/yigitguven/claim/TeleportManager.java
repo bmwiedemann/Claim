@@ -7,10 +7,10 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.living.LivingHurtEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.yigitguven.claim.core.ClaimManager;
 
 import java.util.HashMap;
@@ -18,7 +18,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
-@Mod.EventBusSubscriber(modid = Claim.MODID)
+@EventBusSubscriber(modid = Claim.MODID)
 public class TeleportManager {
     private static final Map<UUID, PendingTeleport> PENDING_TELEPORTS = new HashMap<>();
 
@@ -40,8 +40,7 @@ public class TeleportManager {
     }
 
     @SubscribeEvent
-    public static void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
+    public static void onServerTick(ServerTickEvent.Post event) {
 
         Iterator<Map.Entry<UUID, PendingTeleport>> it = PENDING_TELEPORTS.entrySet().iterator();
         while (it.hasNext()) {
@@ -71,7 +70,7 @@ public class TeleportManager {
     }
 
     @SubscribeEvent
-    public static void onPlayerDamage(LivingHurtEvent event) {
+    public static void onPlayerDamage(LivingDamageEvent.Pre event) {
         if (ModConfig.CANCEL_TP_ON_DAMAGE.get() && event.getEntity() instanceof ServerPlayer player) {
             if (PENDING_TELEPORTS.containsKey(player.getUUID())) {
                 PENDING_TELEPORTS.remove(player.getUUID());
@@ -81,7 +80,7 @@ public class TeleportManager {
     }
 
     private static void executeTeleport(ServerPlayer player, ClaimManager.ClaimTarget target) {
-        ResourceKey<Level> worldKey = ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION, new ResourceLocation(target.dimension()));
+        ResourceKey<Level> worldKey = ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION, ResourceLocation.parse(target.dimension()));
         ServerLevel level = player.server.getLevel(worldKey);
         
         if (level != null) {

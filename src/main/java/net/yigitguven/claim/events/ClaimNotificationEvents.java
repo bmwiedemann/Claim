@@ -4,9 +4,9 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.yigitguven.claim.Claim;
 import net.yigitguven.claim.ModConfig;
 import net.yigitguven.claim.core.ClaimData;
@@ -19,16 +19,16 @@ import java.util.UUID;
 /**
  * Handles action bar notifications when players enter or leave claimed chunks.
  */
-@Mod.EventBusSubscriber(modid = Claim.MODID)
+@EventBusSubscriber(modid = Claim.MODID)
 public class ClaimNotificationEvents {
     private static final Map<UUID, ChunkPos> PLAYER_CHUNKS = new HashMap<>();
 
     @SubscribeEvent
-    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || event.player.level().isClientSide) return;
+    public static void onPlayerTick(PlayerTickEvent.Post event) {
+        if (event.getEntity().level().isClientSide) return;
         if (!ModConfig.ENABLE_ACTION_BAR_NOTIFICATIONS.get()) return;
 
-        ServerPlayer player = (ServerPlayer) event.player;
+        ServerPlayer player = (ServerPlayer) event.getEntity();
         ChunkPos currentPos = player.chunkPosition();
         ChunkPos lastPos = PLAYER_CHUNKS.get(player.getUUID());
 
