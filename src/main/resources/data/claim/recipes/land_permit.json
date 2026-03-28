@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " P ",
+    "GCG",
+    " P "
+  ],
+  "key": {
+    "P": { "item": "minecraft:paper" },
+    "G": { "item": "minecraft:gold_ingot" },
+    "C": { "item": "minecraft:compass" }
+  },
+  "result": { "item": "claim:land_permit" }
+}
