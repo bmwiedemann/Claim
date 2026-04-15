@@ -1,3 +1,0 @@
-- Crafting recipes for the **Surveyor's Compass** and **Land Permit** items.
-- Project environment cleanup and build repairs.
-- Automated client launch configuration fixes (`forge.earlydisplay=false`).
