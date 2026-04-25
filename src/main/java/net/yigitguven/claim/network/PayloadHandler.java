@@ -26,4 +26,14 @@ public class PayloadHandler
             }
         });
     }
+
+    public static void handleRequestUnclaim(final net.yigitguven.claim.network.RequestUnclaimPayload payload, final IPayloadContext context)
+    {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof net.minecraft.server.level.ServerPlayer player)
+            {
+                net.yigitguven.claim.core.ClaimManager.removeClaims(player.serverLevel(), payload.claimIds(), player.getUUID());
+            }
+        });
+    }
 }

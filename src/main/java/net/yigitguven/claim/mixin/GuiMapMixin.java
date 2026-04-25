@@ -59,9 +59,59 @@ public abstract class GuiMapMixin extends net.minecraft.client.gui.screens.Scree
 
                 if (Minecraft.getInstance().getConnection() != null)
                 {
-                    Minecraft.getInstance().getConnection().send(new RequestClaimPayload(p1, p2));
+                    Minecraft.getInstance().getConnection().send(new net.yigitguven.claim.network.RequestClaimPayload(p1, p2));
                 }
             }
         });
+
+        // Add Unclaim Selection option
+        java.util.List<Integer> selectedClaimIds = new java.util.ArrayList<>();
+        int left = mapTileSelection.getLeft();
+        int top = mapTileSelection.getTop();
+        int right = mapTileSelection.getRight();
+        int bottom = mapTileSelection.getBottom();
+        java.util.UUID playerUUID = Minecraft.getInstance().player != null ? Minecraft.getInstance().player.getUUID() : null;
+
+        if (playerUUID != null)
+        {
+            for (net.yigitguven.claim.core.ClaimData claim : net.yigitguven.claim.core.ClientClaimManager.getClaims())
+            {
+                if (claim.ownerUUID.equals(playerUUID))
+                {
+                    int cMinX = Math.min(claim.pos1.getX(), claim.pos2.getX()) >> 4;
+                    int cMinZ = Math.min(claim.pos1.getZ(), claim.pos2.getZ()) >> 4;
+                    int cMaxX = Math.max(claim.pos1.getX(), claim.pos2.getX()) >> 4;
+                    int cMaxZ = Math.max(claim.pos1.getZ(), claim.pos2.getZ()) >> 4;
+
+                    if (cMaxX >= left && cMinX <= right && cMaxZ >= top && cMinZ <= bottom)
+                    {
+                        selectedClaimIds.add(claim.claimId);
+                    }
+                }
+            }
+        }
+
+        if (!selectedClaimIds.isEmpty())
+        {
+            options.add(new RightClickOption("Unclaim Selection", options.size(), (GuiMap) (Object) this)
+            {
+                @Override
+                public void onAction(Screen screen)
+                {
+                    Minecraft.getInstance().setScreen(new net.minecraft.client.gui.screens.ConfirmScreen((result) -> {
+                        if (result) {
+                            Minecraft.getInstance().setScreen(new net.minecraft.client.gui.screens.ConfirmScreen((result2) -> {
+                                if (result2 && Minecraft.getInstance().getConnection() != null) {
+                                    Minecraft.getInstance().getConnection().send(new net.yigitguven.claim.network.RequestUnclaimPayload(selectedClaimIds));
+                                }
+                                Minecraft.getInstance().setScreen(screen);
+                            }, net.minecraft.network.chat.Component.literal("Are you REALLY sure?"), net.minecraft.network.chat.Component.literal("This will unclaim " + selectedClaimIds.size() + " claim(s).")));
+                        } else {
+                            Minecraft.getInstance().setScreen(screen);
+                        }
+                    }, net.minecraft.network.chat.Component.literal("Unclaim Selection"), net.minecraft.network.chat.Component.literal("Are you sure you want to unclaim " + selectedClaimIds.size() + " claim(s)?")));
+                }
+            });
+        }
     }
 }

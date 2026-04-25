@@ -38,6 +38,16 @@ public class ClaimManager
         }
     }
 
+    public static void removeClaims(ServerLevel level, List<Integer> claimIds, UUID playerUUID)
+    {
+        claims.removeIf(claim -> claimIds.contains(claim.claimId) && claim.ownerUUID.equals(playerUUID));
+        save(level);
+        for (ServerPlayer player : level.getServer().getPlayerList().getPlayers())
+        {
+            Claim.syncClaims(player);
+        }
+    }
+
     public static List<ClaimData> getClaims()
     {
         return new ArrayList<>(claims);

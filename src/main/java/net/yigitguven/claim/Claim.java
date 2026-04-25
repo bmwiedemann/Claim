@@ -51,6 +51,11 @@ public class Claim
                 net.yigitguven.claim.network.RequestClaimPayload.STREAM_CODEC,
                 PayloadHandler::handleRequestClaim
         );
+        registrar.playToServer(
+                net.yigitguven.claim.network.RequestUnclaimPayload.TYPE,
+                net.yigitguven.claim.network.RequestUnclaimPayload.STREAM_CODEC,
+                PayloadHandler::handleRequestUnclaim
+        );
     }
 
     private void clientSetup(final FMLClientSetupEvent event)
