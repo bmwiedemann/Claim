@@ -1,1 +1,3 @@
+- Updated mod logo.
+- Cleaned up source code and assets for a full rewrite.
 - Initialized alpha stage for version 2.0.0.
