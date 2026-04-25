@@ -9,6 +9,14 @@ import net.yigitguven.claim.core.ClaimData;
 import net.yigitguven.claim.core.ClientClaimManager;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
+import com.mojang.blaze3d.platform.Lighting;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -141,23 +149,26 @@ public class ClaimListScreen extends Screen
         if (!areChunksLoaded(claim))
         {
             // Render placeholder fallback
+            RenderSystem.disableDepthTest();
+            RenderSystem.setShader(GameRenderer::getPositionTexShader);
             RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
             int s = (int)scale * 2;
-            guiGraphics.blit(PLACEHOLDER, x - s/2, y - s/2, s, s, 0.0f, 0.0f, 128, 128, 128, 128);
+            // Stretching the texture to fit the slot
+            guiGraphics.blit(PLACEHOLDER, x - s/2, y - s/2, 0, 0, s, s, 128, 128);
             return;
         }
 
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(x, y, 200);
-        guiGraphics.pose().scale(scale, scale, scale);
+        guiGraphics.pose().translate(x, y, 300);
         
-        Quaternionf quaternion = new Quaternionf()
-                .rotateX((float) Math.toRadians(30))
-                .rotateY((float) Math.toRadians(rot));
-        guiGraphics.pose().mulPose(quaternion);
+        // Setup lighting for the 3D model
+        Lighting.setupFor3DItems();
+        
+        renderProjectorPreview(guiGraphics, claim, rot, scale);
 
-        renderOptimizedTerrain(guiGraphics, claim);
-
+        Lighting.setupForFlatItems();
         guiGraphics.pose().popPose();
     }
 
@@ -172,7 +183,7 @@ public class ClaimListScreen extends Screen
         return level.getChunkSource().hasChunk(centerX >> 4, centerZ >> 4);
     }
 
-    private void renderOptimizedTerrain(GuiGraphics guiGraphics, ClaimData claim)
+    private void renderProjectorPreview(GuiGraphics guiGraphics, ClaimData claim, float rot, float scale)
     {
         net.minecraft.client.multiplayer.ClientLevel level = minecraft.level;
         if (level == null) return;
@@ -184,85 +195,66 @@ public class ClaimListScreen extends Screen
 
         int sizeX = maxX - minX + 1;
         int sizeZ = maxZ - minZ + 1;
+
+        // Find global highest block in the claim to anchor the "projector"
+        int globalMaxH = -64;
+        int sampleStep = Math.max(1, Math.max(sizeX, sizeZ) / 16);
+        for (int i = 0; i < sizeX; i += sampleStep) {
+            for (int j = 0; j < sizeZ; j += sampleStep) {
+                int h = level.getHeight(Heightmap.Types.WORLD_SURFACE, minX + i, minZ + j) - 1;
+                if (h > globalMaxH) globalMaxH = h;
+            }
+        }
+
+        // Calculate fit scale - account for both horizontal size and the 16-block depth
+        float diag = (float) Math.sqrt(sizeX * sizeX + sizeZ * sizeZ + 16 * 16);
+        float fitScale = (scale * 1.6f) / Math.max(diag, 20f);
+
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().scale(fitScale, -fitScale, fitScale);
         
-        int res = 48; // Higher resolution for better detail
-        int stepX = Math.max(1, sizeX / res);
-        int stepZ = Math.max(1, sizeZ / res);
+        Quaternionf quaternion = new Quaternionf()
+                .rotateX((float) Math.toRadians(25))
+                .rotateY((float) Math.toRadians(rot));
+        guiGraphics.pose().mulPose(quaternion);
         
-        float miniScale = 2.0f / Math.max(sizeX, sizeZ);
-        guiGraphics.pose().scale(miniScale, miniScale, miniScale);
         guiGraphics.pose().translate(-sizeX / 2.0f, 0, -sizeZ / 2.0f);
 
-        com.mojang.blaze3d.vertex.Tesselator tesselator = com.mojang.blaze3d.vertex.Tesselator.getInstance();
-        com.mojang.blaze3d.vertex.BufferBuilder buffer = tesselator.begin(com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS, com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR);
+        BlockRenderDispatcher dispatcher = minecraft.getBlockRenderer();
+        MultiBufferSource.BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
 
-        Matrix4f matrix = guiGraphics.pose().last().pose();
-
-        // Sample heights first
-        int[][] heights = new int[sizeX/stepX + 1][sizeZ/stepZ + 1];
-        int[][] colors = new int[sizeX/stepX + 1][sizeZ/stepZ + 1];
+        int step = Math.max(1, Math.max(sizeX, sizeZ) / 40);
         
-        int minY = 256;
-        for (int i = 0; i < sizeX/stepX; i++)
+        for (int i = 0; i < sizeX; i += step)
         {
-            for (int j = 0; j < sizeZ/stepZ; j++)
+            for (int j = 0; j < sizeZ; j += step)
             {
-                int worldX = minX + i * stepX;
-                int worldZ = minZ + j * stepZ;
-                int h = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, worldX, worldZ) - 1;
-                heights[i][j] = h;
-                if (h < minY) minY = h;
+                int worldX = minX + i;
+                int worldZ = minZ + j;
                 
-                net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(worldX, h, worldZ);
-                net.minecraft.world.level.block.state.BlockState state = level.getBlockState(pos);
-                colors[i][j] = state.getMapColor(level, pos).col | 0xFF000000;
-            }
-        }
+                // Render from globalMaxH down to globalMaxH - 16
+                for (int y = globalMaxH; y > globalMaxH - 16; y--) {
+                    BlockPos pos = new BlockPos(worldX, y, worldZ);
+                    BlockState state = level.getBlockState(pos);
+                    if (state.isAir()) continue;
 
-        // Render faces
-        for (int i = 0; i < sizeX/stepX; i++)
-        {
-            for (int j = 0; j < sizeZ/stepZ; j++)
-            {
-                float x = i * stepX;
-                float z = j * stepZ;
-                float h = heights[i][j] - minY;
-                int color = colors[i][j];
-
-                // Top Face
-                addFaceHorizontal(buffer, matrix, x, z, x + stepX, z + stepZ, h, color);
-
-                // Check neighbors for sides (simulating 3D blocks)
-                if (i < sizeX/stepX - 1) {
-                    float nextH = heights[i+1][j] - minY;
-                    if (h > nextH) {
-                        // Right Side
-                        int rightColor = darken(color, 40);
-                        addFaceVerticalSide(buffer, matrix, x + stepX, nextH, z, x + stepX, h, z + stepZ, rightColor);
-                    }
-                }
-                
-                if (j < sizeZ/stepZ - 1) {
-                    float nextH = heights[i][j+1] - minY;
-                    if (h > nextH) {
-                        // Front Side
-                        int frontColor = darken(color, 20);
-                        addFace(buffer, matrix, x, nextH, z + stepZ, x + stepX, h, z + stepZ, frontColor);
-                    }
+                    guiGraphics.pose().pushPose();
+                    guiGraphics.pose().translate(i, y - globalMaxH, j); // Relative to global max
+                    dispatcher.renderSingleBlock(state, guiGraphics.pose(), bufferSource, 15728880, OverlayTexture.NO_OVERLAY);
+                    guiGraphics.pose().popPose();
                 }
             }
         }
         
-        RenderSystem.setShader(net.minecraft.client.renderer.GameRenderer::getPositionColorShader);
-        RenderSystem.enableDepthTest();
-        com.mojang.blaze3d.vertex.BufferUploader.drawWithShader(buffer.buildOrThrow());
+        bufferSource.endBatch();
+        guiGraphics.pose().popPose();
     }
 
-    private int darken(int color, int amount) {
+    private int darken(int color, float factor) {
         int a = (color >> 24) & 0xFF;
-        int r = Math.max(0, ((color >> 16) & 0xFF) - amount);
-        int g = Math.max(0, ((color >> 8) & 0xFF) - amount);
-        int b = Math.max(0, (color & 0xFF) - amount);
+        int r = (int)(((color >> 16) & 0xFF) * factor);
+        int g = (int)(((color >> 8) & 0xFF) * factor);
+        int b = (int)((color & 0xFF) * factor);
         return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
