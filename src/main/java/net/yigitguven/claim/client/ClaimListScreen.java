@@ -2,6 +2,7 @@ package net.yigitguven.claim.client;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.yigitguven.claim.core.ClaimData;
@@ -16,6 +17,7 @@ import java.util.UUID;
 public class ClaimListScreen extends Screen
 {
     private List<ClaimData> playerClaims = new ArrayList<>();
+    private List<Button> renameButtons = new ArrayList<>();
     private float rotation = 0;
     private double scrollAmount = 0;
 
@@ -31,14 +33,25 @@ public class ClaimListScreen extends Screen
         playerClaims = ClientClaimManager.getClaims().stream()
                 .filter(c -> c.ownerUUID.equals(playerUUID))
                 .toList();
+
+        this.clearWidgets();
+        renameButtons.clear();
+        for (ClaimData claim : playerClaims)
+        {
+            Button btn = Button.builder(Component.literal("Rename"), (b) -> openRenameDialog(claim))
+                    .bounds(0, 0, 60, 20)
+                    .build();
+            this.addRenderableWidget(btn);
+            renameButtons.add(btn);
+        }
     }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick)
     {
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
-
+        
+        // Render 3D terrain first
         if (playerClaims.isEmpty())
         {
             guiGraphics.drawCenteredString(this.font, "No claims found.", this.width / 2, this.height / 2, 0xFFFFFF);
@@ -47,10 +60,10 @@ public class ClaimListScreen extends Screen
         {
             rotation += partialTick * 1.5f;
             
-            int columns = 5;
+            int columns = 4; // Bigger slots
             int spacingX = this.width / (columns + 1);
-            int spacingY = spacingX + 20; // Extra space for name/button
-            float scale = spacingX * 0.35f;
+            int spacingY = spacingX + 40; 
+            float scale = spacingX * 0.45f;
             
             int startX = (this.width - (columns - 1) * spacingX) / 2;
             int startY = 80;
@@ -64,29 +77,43 @@ public class ClaimListScreen extends Screen
                 int x = startX + (i % columns) * spacingX;
                 int y = startY + (i / columns) * spacingY;
 
+                // Update Button position
+                Button btn = renameButtons.get(i);
+                int btnX = x - btn.getWidth() / 2;
+                int btnY = y + (int)scale + 10;
+                btn.setX(btnX);
+                btn.setY((int)(btnY - scrollAmount));
+                btn.visible = btn.getY() + btn.getHeight() > 40 && btn.getY() < this.height - 10;
+
                 boolean isHovered = mouseX >= x - spacingX/2 && mouseX <= x + spacingX/2 && 
                                    mouseY >= y - spacingX/2 - scrollAmount && mouseY <= y + spacingX/2 - scrollAmount;
 
                 if (isHovered)
                 {
-                    // Draw nice white border
                     guiGraphics.renderOutline(x - (int)scale - 5, y - (int)scale - 5, (int)scale * 2 + 10, (int)scale * 2 + 10, 0xFFFFFFFF);
-                    guiGraphics.renderTooltip(this.font, Component.literal(claim.displayName), mouseX, (int)(mouseY + scrollAmount));
                 }
 
                 render3DClaim(guiGraphics, claim, x, y, rotation, scale);
-                
-                // Render Edit Button below
-                int btnW = 40;
-                int btnH = 12;
-                int btnX = x - btnW/2;
-                int btnY = y + (int)scale + 5;
-                
-                guiGraphics.fill(btnX, btnY, btnX + btnW, btnY + btnH, isHovered ? 0xFF55FF7D : 0xFF333333);
-                guiGraphics.drawCenteredString(this.font, "Rename", x, btnY + 2, 0xFFFFFF);
             }
             
             guiGraphics.pose().popPose();
+            
+            // Render widgets on top
+            super.render(guiGraphics, mouseX, mouseY, partialTick);
+            
+            // Hover tooltips (must be after super.render to be on top)
+            for (int i = 0; i < playerClaims.size(); i++)
+            {
+                int x = startX + (i % columns) * spacingX;
+                int y = startY + (i / columns) * spacingY;
+                boolean isHovered = mouseX >= x - spacingX/2 && mouseX <= x + spacingX/2 && 
+                                   mouseY >= y - spacingX/2 - scrollAmount && mouseY <= y + spacingX/2 - scrollAmount;
+                if (isHovered)
+                {
+                    guiGraphics.renderTooltip(this.font, Component.literal(playerClaims.get(i).displayName), mouseX, mouseY);
+                }
+            }
+
             guiGraphics.drawCenteredString(this.font, "My Claims (" + playerClaims.size() + ")", this.width / 2, 20, 0xFF55FF7D);
         }
     }
@@ -94,32 +121,7 @@ public class ClaimListScreen extends Screen
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button)
     {
-        if (button == 0) // Left click
-        {
-            int columns = 5;
-            int spacingX = this.width / (columns + 1);
-            int spacingY = spacingX + 20;
-            int startX = (this.width - (columns - 1) * spacingX) / 2;
-            int startY = 80;
-
-            for (int i = 0; i < playerClaims.size(); i++)
-            {
-                int x = startX + (i % columns) * spacingX;
-                int y = startY + (i / columns) * spacingY;
-                
-                float scale = spacingX * 0.35f;
-                int btnW = 40;
-                int btnH = 12;
-                int btnX = x - btnW/2;
-                int btnY = (int)(y + scale + 5 - scrollAmount);
-
-                if (mouseX >= btnX && mouseX <= btnX + btnW && mouseY >= btnY && mouseY <= btnY + btnH)
-                {
-                    openRenameDialog(playerClaims.get(i));
-                    return true;
-                }
-            }
-        }
+        // Button clicking is handled by vanilla widgets
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
