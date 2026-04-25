@@ -51,6 +51,9 @@ public abstract class GuiMapMixin extends net.minecraft.client.gui.screens.Scree
         ArrayList<RightClickOption> options = cir.getReturnValue();
         if (options == null || mapTileSelection == null) return;
 
+        // Check if claims are enabled in Xaero's settings
+        if (!net.yigitguven.claim.integration.XaeroMapIntegration.isEnabled()) return;
+
         options.add(new RightClickOption("Claim Selection", options.size(), (GuiMap) (Object) this)
         {
             @Override

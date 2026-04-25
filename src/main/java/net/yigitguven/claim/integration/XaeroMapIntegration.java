@@ -42,7 +42,20 @@ public class XaeroMapIntegration extends ChunkHighlighter
     @Override
     public boolean regionHasHighlights(ResourceKey<Level> dimension, int regionX, int regionZ)
     {
-        return true;
+        return isEnabled();
+    }
+
+    public static boolean isEnabled()
+    {
+        try
+        {
+            if (xaero.map.WorldMap.settings == null) return true;
+            return xaero.map.WorldMap.INSTANCE.getConfigs().getClientConfigManager().getEffective(xaero.map.common.config.option.WorldMapProfiledConfigOptions.OPAC_CLAIMS);
+        }
+        catch (Throwable e)
+        {
+            return true;
+        }
     }
 
     private static int refreshCounter = 0;
@@ -122,7 +135,7 @@ public class XaeroMapIntegration extends ChunkHighlighter
             }
         }
 
-        if (foundClaim == null) return null;
+        if (foundClaim == null || !isEnabled()) return null;
 
         // Use the color that was working
         int color = 1442796919; // Green (0x55FF7D77)
@@ -162,7 +175,7 @@ public class XaeroMapIntegration extends ChunkHighlighter
 
             if (chunkX >= minX && chunkX <= maxX && chunkZ >= minZ && chunkZ <= maxZ)
             {
-                return Component.literal("Claim: " + claim.displayName);
+                return isEnabled() ? Component.literal("Claim: " + claim.displayName) : null;
             }
         }
         return null;
