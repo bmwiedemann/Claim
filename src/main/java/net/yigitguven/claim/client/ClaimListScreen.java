@@ -217,19 +217,27 @@ public class ClaimListScreen extends Screen
         int sizeX = maxX - minX + 1;
         int sizeZ = maxZ - minZ + 1;
 
-        // Find global highest block in the claim to anchor the "projector"
-        int globalMaxH = -64;
+        int minY = Math.min(claim.pos1.getY(), claim.pos2.getY());
+        int maxY = Math.max(claim.pos1.getY(), claim.pos2.getY());
+
+        // Find global highest block INSIDE the claim boundaries to anchor the "projector"
+        int globalMaxH = minY;
         int sampleStep = Math.max(1, Math.max(sizeX, sizeZ) / 16);
         for (int i = 0; i < sizeX; i += sampleStep) {
             for (int j = 0; j < sizeZ; j += sampleStep) {
-                int h = level.getHeight(Heightmap.Types.WORLD_SURFACE, minX + i, minZ + j) - 1;
-                if (h > globalMaxH) globalMaxH = h;
+                // Find highest non-air block within the claim's Y volume
+                for (int h = maxY; h >= minY; h--) {
+                    if (!level.getBlockState(new BlockPos(minX + i, h, minZ + j)).isAir()) {
+                        if (h > globalMaxH) globalMaxH = h;
+                        break;
+                    }
+                }
             }
         }
 
-        // Calculate fit scale - account for both horizontal size and the 16-block depth
+        // Calculate fit scale - ensure small claims zoom in more to fill the slot
         float diag = (float) Math.sqrt(sizeX * sizeX + sizeZ * sizeZ + 16 * 16);
-        float fitScale = (scale * 1.6f) / Math.max(diag, 20f);
+        float fitScale = (scale * 1.75f) / Math.max(diag, 12f);
 
         guiGraphics.pose().pushPose();
         guiGraphics.pose().scale(fitScale, -fitScale, fitScale);
@@ -253,8 +261,8 @@ public class ClaimListScreen extends Screen
                 int worldX = minX + i;
                 int worldZ = minZ + j;
                 
-                // Render from globalMaxH down to globalMaxH - 16
-                for (int y = globalMaxH; y > globalMaxH - 16; y--) {
+                // Render from globalMaxH down to globalMaxH - 16, staying within claim Y bounds
+                for (int y = globalMaxH; y >= minY && y > globalMaxH - 16; y--) {
                     BlockPos pos = new BlockPos(worldX, y, worldZ);
                     BlockState state = level.getBlockState(pos);
                     if (state.isAir()) continue;
