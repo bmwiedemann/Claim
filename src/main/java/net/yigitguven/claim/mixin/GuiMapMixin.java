@@ -61,7 +61,7 @@ public abstract class GuiMapMixin extends net.minecraft.client.gui.screens.Scree
         {
             boolean enabled = net.yigitguven.claim.integration.XaeroMapIntegration.isEnabled();
             String state = enabled ? "Showing" : "Hidden";
-            String text = "Claim mod is in control\nStatus: " + state;
+            String text = "Claim mod is in control - Status: " + state;
             accessor.setTooltipSupplier(() -> new xaero.lib.client.gui.widget.Tooltip(text));
             // Remove Minecraft tooltip to prevent overlapping
             this.claimsButton.setTooltip(null);
