@@ -1,3 +1,6 @@
 - Updated mod logo.
 - Cleaned up source code and assets for a full rewrite.
 - Initialized alpha stage for version 2.0.0.
+- Implemented item based (configurable) position selection system.
+- Added /claim command with support for selections and relative coordinates (~).
+- Added JSON-based claim persistence (saves to world/data/claim/claims.json).
