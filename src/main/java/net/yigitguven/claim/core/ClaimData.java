@@ -1,6 +1,8 @@
 package net.yigitguven.claim.core;
 
 import net.minecraft.core.BlockPos;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class ClaimData
@@ -10,14 +12,36 @@ public class ClaimData
     public final UUID ownerUUID;
     public final BlockPos pos1;
     public final BlockPos pos2;
+    
+    // New data fields
+    public List<UUID> trustedPlayers;
+    public PermissionMode permissionMode;
+    public long createdAt;
+    public int color;
+    public String description;
+
+    public enum PermissionMode {
+        PUBLIC, PRIVATE
+    }
 
     public ClaimData(int claimId, String displayName, UUID ownerUUID, BlockPos pos1, BlockPos pos2)
+    {
+        this(claimId, displayName, ownerUUID, pos1, pos2, new ArrayList<>(), PermissionMode.PRIVATE, System.currentTimeMillis(), 0xFF55FF7D, "");
+    }
+
+    public ClaimData(int claimId, String displayName, UUID ownerUUID, BlockPos pos1, BlockPos pos2, 
+                    List<UUID> trustedPlayers, PermissionMode permissionMode, long createdAt, int color, String description)
     {
         this.claimId = claimId;
         this.displayName = displayName;
         this.ownerUUID = ownerUUID;
         this.pos1 = pos1;
         this.pos2 = pos2;
+        this.trustedPlayers = trustedPlayers;
+        this.permissionMode = permissionMode;
+        this.createdAt = createdAt;
+        this.color = color;
+        this.description = description;
     }
 
     @Override

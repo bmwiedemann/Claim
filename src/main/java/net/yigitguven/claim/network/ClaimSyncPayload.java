@@ -37,14 +37,41 @@ public record ClaimSyncPayload(List<ClaimData> claims) implements CustomPacketPa
                     buf.writeUUID(data.ownerUUID);
                     buf.writeBlockPos(data.pos1);
                     buf.writeBlockPos(data.pos2);
+                    
+                    // Trusted players
+                    buf.writeInt(data.trustedPlayers.size());
+                    for (UUID uuid : data.trustedPlayers) {
+                        buf.writeUUID(uuid);
+                    }
+                    
+                    // Permission mode
+                    buf.writeEnum(data.permissionMode);
+                    
+                    // Other metadata
+                    buf.writeLong(data.createdAt);
+                    buf.writeInt(data.color);
+                    buf.writeUtf(data.description);
                 },
-                (buf) -> new ClaimData(
-                        buf.readInt(),
-                        buf.readUtf(),
-                        buf.readUUID(),
-                        buf.readBlockPos(),
-                        buf.readBlockPos()
-                )
+                (buf) -> {
+                    int id = buf.readInt();
+                    String name = buf.readUtf();
+                    UUID owner = buf.readUUID();
+                    BlockPos p1 = buf.readBlockPos();
+                    BlockPos p2 = buf.readBlockPos();
+                    
+                    int trustSize = buf.readInt();
+                    List<UUID> trusted = new ArrayList<>(trustSize);
+                    for (int i = 0; i < trustSize; i++) {
+                        trusted.add(buf.readUUID());
+                    }
+                    
+                    ClaimData.PermissionMode mode = buf.readEnum(ClaimData.PermissionMode.class);
+                    long created = buf.readLong();
+                    int color = buf.readInt();
+                    String desc = buf.readUtf();
+                    
+                    return new ClaimData(id, name, owner, p1, p2, trusted, mode, created, color, desc);
+                }
         );
     }
 }
