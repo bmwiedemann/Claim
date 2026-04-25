@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.yigitguven.claim.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "HighlighterRegistryMixin",
+    "GuiMapMixin"
+  ],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

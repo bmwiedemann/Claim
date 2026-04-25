@@ -4,3 +4,5 @@
 - Implemented item based (configurable) position selection system.
 - Added /claim command with support for selections and relative coordinates (~).
 - Added JSON-based claim persistence (saves to world/data/claim/claims.json).
+- Added Xaero's World Map integration (claims are now visible on the map).
+- Implemented networking system to sync claims from server to client.

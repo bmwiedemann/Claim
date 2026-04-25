@@ -6,6 +6,8 @@ import com.google.gson.reflect.TypeToken;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.yigitguven.claim.Claim;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -28,6 +30,12 @@ public class ClaimManager
     {
         claims.add(new ClaimData(nextClaimId++, displayName, ownerUUID, pos1, pos2));
         save(level);
+        
+        // Sync to all players
+        for (ServerPlayer player : level.getServer().getPlayerList().getPlayers())
+        {
+            Claim.syncClaims(player);
+        }
     }
 
     public static List<ClaimData> getClaims()

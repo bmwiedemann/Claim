@@ -67,11 +67,15 @@ neoForge {
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 repositories {
-    // Put repositories for dependencies here
+    maven {
+        url "https://chocolateminecraft.com/maven"
+        name "Xaero's Maven"
+    }
 }
 
 dependencies {
-    // NeoForge dependencies are loaded automatically by ModDevGradle from the neoForge block.
+    implementation "xaero.map:xaeroworldmap-neoforge-1.21.1:1.40.11"
+    implementation "xaero.lib:xaerolib-neoforge-1.21.1:1.1.0"
 }
 
 tasks.named('processResources', ProcessResources).configure {
