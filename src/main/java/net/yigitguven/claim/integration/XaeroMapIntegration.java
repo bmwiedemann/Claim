@@ -37,27 +37,14 @@ public class XaeroMapIntegration extends ChunkHighlighter
     @Override
     public boolean regionHasHighlights(ResourceKey<Level> dimension, int regionX, int regionZ)
     {
-        // A region is 32x32 chunks. We'll return true if any chunk in the region is highlit.
-        // For performance, we can just check if any claim overlaps with this region.
-        for (ClaimData claim : ClientClaimManager.getClaims())
-        {
-            int minX = Math.min(claim.pos1.getX(), claim.pos2.getX()) >> 9;
-            int minZ = Math.min(claim.pos1.getZ(), claim.pos2.getZ()) >> 9;
-            int maxX = Math.max(claim.pos1.getX(), claim.pos2.getX()) >> 9;
-            int maxZ = Math.max(claim.pos1.getZ(), claim.pos2.getZ()) >> 9;
-
-            if (regionX >= minX && regionX <= maxX && regionZ >= minZ && regionZ <= maxZ)
-            {
-                return true;
-            }
-        }
-        return false;
+        return true;
     }
 
     @Override
     public int calculateRegionHash(ResourceKey<Level> dimension, int regionX, int regionZ)
     {
-        return ClientClaimManager.getClaims().hashCode();
+        // Forcing re-render for diagnostics
+        return (int) (System.currentTimeMillis() / 1000);
     }
 
     private final int[] resultStore = new int[5];
