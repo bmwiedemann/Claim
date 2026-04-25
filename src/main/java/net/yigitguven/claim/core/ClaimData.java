@@ -6,7 +6,7 @@ import java.util.UUID;
 public class ClaimData
 {
     public final int claimId;
-    public final String displayName;
+    public String displayName;
     public final UUID ownerUUID;
     public final BlockPos pos1;
     public final BlockPos pos2;

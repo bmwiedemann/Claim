@@ -48,6 +48,23 @@ public class ClaimManager
         }
     }
 
+    public static void renameClaim(ServerLevel level, int claimId, String newName, UUID ownerUUID)
+    {
+        for (ClaimData claim : claims)
+        {
+            if (claim.claimId == claimId && claim.ownerUUID.equals(ownerUUID))
+            {
+                claim.displayName = newName;
+                save(level);
+                for (ServerPlayer player : level.getServer().getPlayerList().getPlayers())
+                {
+                    Claim.syncClaims(player);
+                }
+                break;
+            }
+        }
+    }
+
     public static List<ClaimData> getClaims()
     {
         return new ArrayList<>(claims);

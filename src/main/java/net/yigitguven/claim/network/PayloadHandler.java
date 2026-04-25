@@ -43,4 +43,14 @@ public class PayloadHandler
             net.minecraft.client.Minecraft.getInstance().setScreen(new net.yigitguven.claim.client.ClaimListScreen());
         });
     }
+
+    public static void handleRename(final RenameClaimPayload payload, final IPayloadContext context)
+    {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof net.minecraft.server.level.ServerPlayer player)
+            {
+                net.yigitguven.claim.core.ClaimManager.renameClaim(player.serverLevel(), payload.claimId(), payload.newName(), player.getUUID());
+            }
+        });
+    }
 }
