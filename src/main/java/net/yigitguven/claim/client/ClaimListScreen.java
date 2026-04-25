@@ -21,6 +21,8 @@ public class ClaimListScreen extends Screen
     private java.util.Map<Integer, CachedTerrain> terrainCache = new java.util.HashMap<>();
     private float rotation = 0;
     private double scrollAmount = 0;
+    
+    private static final net.minecraft.resources.ResourceLocation PLACEHOLDER = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("claim", "textures/gui/placeholder.png");
 
     private record CachedTerrain(net.minecraft.client.renderer.RenderType renderType, int vertexCount) {}
 
@@ -136,6 +138,15 @@ public class ClaimListScreen extends Screen
 
     private void renderCached3DClaim(GuiGraphics guiGraphics, ClaimData claim, int x, int y, float rot, float scale)
     {
+        if (!areChunksLoaded(claim))
+        {
+            // Render placeholder fallback
+            RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
+            int s = (int)scale * 2;
+            guiGraphics.blit(PLACEHOLDER, x - s/2, y - s/2, s, s, 0.0f, 0.0f, 128, 128, 128, 128);
+            return;
+        }
+
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(x, y, 200);
         guiGraphics.pose().scale(scale, scale, scale);
@@ -148,6 +159,17 @@ public class ClaimListScreen extends Screen
         renderOptimizedTerrain(guiGraphics, claim);
 
         guiGraphics.pose().popPose();
+    }
+
+    private boolean areChunksLoaded(ClaimData claim)
+    {
+        net.minecraft.client.multiplayer.ClientLevel level = minecraft.level;
+        if (level == null) return false;
+        
+        // Check if the center of the claim area is loaded
+        int centerX = (claim.pos1.getX() + claim.pos2.getX()) / 2;
+        int centerZ = (claim.pos1.getZ() + claim.pos2.getZ()) / 2;
+        return level.getChunkSource().hasChunk(centerX >> 4, centerZ >> 4);
     }
 
     private void renderOptimizedTerrain(GuiGraphics guiGraphics, ClaimData claim)
