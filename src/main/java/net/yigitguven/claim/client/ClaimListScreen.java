@@ -18,8 +18,11 @@ public class ClaimListScreen extends Screen
 {
     private List<ClaimData> playerClaims = new ArrayList<>();
     private List<Button> renameButtons = new ArrayList<>();
+    private java.util.Map<Integer, CachedTerrain> terrainCache = new java.util.HashMap<>();
     private float rotation = 0;
     private double scrollAmount = 0;
+
+    private record CachedTerrain(net.minecraft.client.renderer.RenderType renderType, int vertexCount) {}
 
     public ClaimListScreen()
     {
@@ -36,6 +39,9 @@ public class ClaimListScreen extends Screen
 
         this.clearWidgets();
         renameButtons.clear();
+        // Clear terrain cache to refresh blocks
+        terrainCache.clear();
+
         for (ClaimData claim : playerClaims)
         {
             Button btn = Button.builder(Component.literal("Rename"), (b) -> openRenameDialog(claim))
@@ -51,7 +57,6 @@ public class ClaimListScreen extends Screen
     {
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         
-        // Render 3D terrain first
         if (playerClaims.isEmpty())
         {
             guiGraphics.drawCenteredString(this.font, "No claims found.", this.width / 2, this.height / 2, 0xFFFFFF);
@@ -60,7 +65,7 @@ public class ClaimListScreen extends Screen
         {
             rotation += partialTick * 1.5f;
             
-            int columns = 4; // Bigger slots
+            int columns = 4;
             int spacingX = this.width / (columns + 1);
             int spacingY = spacingX + 40; 
             float scale = spacingX * 0.45f;
@@ -77,12 +82,9 @@ public class ClaimListScreen extends Screen
                 int x = startX + (i % columns) * spacingX;
                 int y = startY + (i / columns) * spacingY;
 
-                // Update Button position
                 Button btn = renameButtons.get(i);
-                int btnX = x - btn.getWidth() / 2;
-                int btnY = y + (int)scale + 10;
-                btn.setX(btnX);
-                btn.setY((int)(btnY - scrollAmount));
+                btn.setX(x - btn.getWidth() / 2);
+                btn.setY((int)(y + scale + 10 - scrollAmount));
                 btn.visible = btn.getY() + btn.getHeight() > 40 && btn.getY() < this.height - 10;
 
                 boolean isHovered = mouseX >= x - spacingX/2 && mouseX <= x + spacingX/2 && 
@@ -93,22 +95,19 @@ public class ClaimListScreen extends Screen
                     guiGraphics.renderOutline(x - (int)scale - 5, y - (int)scale - 5, (int)scale * 2 + 10, (int)scale * 2 + 10, 0xFFFFFFFF);
                 }
 
-                render3DClaim(guiGraphics, claim, x, y, rotation, scale);
+                renderCached3DClaim(guiGraphics, claim, x, y, rotation, scale);
             }
             
             guiGraphics.pose().popPose();
-            
-            // Render widgets on top
             super.render(guiGraphics, mouseX, mouseY, partialTick);
             
-            // Hover tooltips (must be after super.render to be on top)
+            // Render tooltips
             for (int i = 0; i < playerClaims.size(); i++)
             {
                 int x = startX + (i % columns) * spacingX;
                 int y = startY + (i / columns) * spacingY;
-                boolean isHovered = mouseX >= x - spacingX/2 && mouseX <= x + spacingX/2 && 
-                                   mouseY >= y - spacingX/2 - scrollAmount && mouseY <= y + spacingX/2 - scrollAmount;
-                if (isHovered)
+                if (mouseX >= x - spacingX/2 && mouseX <= x + spacingX/2 && 
+                    mouseY >= y - spacingX/2 - scrollAmount && mouseY <= y + spacingX/2 - scrollAmount)
                 {
                     guiGraphics.renderTooltip(this.font, Component.literal(playerClaims.get(i).displayName), mouseX, mouseY);
                 }
@@ -119,10 +118,15 @@ public class ClaimListScreen extends Screen
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button)
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY)
     {
-        // Button clicking is handled by vanilla widgets
-        return super.mouseClicked(mouseX, mouseY, button);
+        scrollAmount = Math.max(0, scrollAmount - scrollY * 20);
+        int columns = 4;
+        int spacingY = this.width / (columns + 1) + 40;
+        int rows = (int) Math.ceil(playerClaims.size() / (double) columns);
+        int totalHeight = 80 + rows * spacingY;
+        scrollAmount = Math.min(scrollAmount, Math.max(0, totalHeight - this.height + 50));
+        return true;
     }
 
     private void openRenameDialog(ClaimData claim)
@@ -130,10 +134,10 @@ public class ClaimListScreen extends Screen
         minecraft.setScreen(new RenameClaimScreen(this, claim));
     }
 
-    private void render3DClaim(GuiGraphics guiGraphics, ClaimData claim, int x, int y, float rot, float scale)
+    private void renderCached3DClaim(GuiGraphics guiGraphics, ClaimData claim, int x, int y, float rot, float scale)
     {
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(x, y, 100);
+        guiGraphics.pose().translate(x, y, 200);
         guiGraphics.pose().scale(scale, scale, scale);
         
         Quaternionf quaternion = new Quaternionf()
@@ -141,12 +145,12 @@ public class ClaimListScreen extends Screen
                 .rotateY((float) Math.toRadians(rot));
         guiGraphics.pose().mulPose(quaternion);
 
-        renderMiniatureTerrain(guiGraphics, claim);
+        renderOptimizedTerrain(guiGraphics, claim);
 
         guiGraphics.pose().popPose();
     }
 
-    private void renderMiniatureTerrain(GuiGraphics guiGraphics, ClaimData claim)
+    private void renderOptimizedTerrain(GuiGraphics guiGraphics, ClaimData claim)
     {
         net.minecraft.client.multiplayer.ClientLevel level = minecraft.level;
         if (level == null) return;
@@ -159,57 +163,109 @@ public class ClaimListScreen extends Screen
         int sizeX = maxX - minX + 1;
         int sizeZ = maxZ - minZ + 1;
         
-        int stepX = Math.max(1, sizeX / 16);
-        int stepZ = Math.max(1, sizeZ / 16);
+        int res = 48; // Higher resolution for better detail
+        int stepX = Math.max(1, sizeX / res);
+        int stepZ = Math.max(1, sizeZ / res);
         
-        float miniScale = 1.8f / Math.max(sizeX, sizeZ);
+        float miniScale = 2.0f / Math.max(sizeX, sizeZ);
         guiGraphics.pose().scale(miniScale, miniScale, miniScale);
         guiGraphics.pose().translate(-sizeX / 2.0f, 0, -sizeZ / 2.0f);
 
-        for (int sx = 0; sx < sizeX; sx += stepX)
-        {
-            for (int sz = 0; sz < sizeZ; sz += stepZ)
-            {
-                int worldX = minX + sx;
-                int worldZ = minZ + sz;
-                
-                net.minecraft.core.BlockPos topPos = new net.minecraft.core.BlockPos(worldX, level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, worldX, worldZ) - 1, worldZ);
-                net.minecraft.world.level.block.state.BlockState state = level.getBlockState(topPos);
-                int color = state.getMapColor(level, topPos).col | 0xFF000000;
+        com.mojang.blaze3d.vertex.Tesselator tesselator = com.mojang.blaze3d.vertex.Tesselator.getInstance();
+        com.mojang.blaze3d.vertex.BufferBuilder buffer = tesselator.begin(com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS, com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR);
 
-                guiGraphics.pose().pushPose();
-                guiGraphics.pose().translate(sx, 0, sz);
-                renderSmallBlock(guiGraphics, color);
-                guiGraphics.pose().popPose();
+        Matrix4f matrix = guiGraphics.pose().last().pose();
+
+        // Sample heights first
+        int[][] heights = new int[sizeX/stepX + 1][sizeZ/stepZ + 1];
+        int[][] colors = new int[sizeX/stepX + 1][sizeZ/stepZ + 1];
+        
+        int minY = 256;
+        for (int i = 0; i < sizeX/stepX; i++)
+        {
+            for (int j = 0; j < sizeZ/stepZ; j++)
+            {
+                int worldX = minX + i * stepX;
+                int worldZ = minZ + j * stepZ;
+                int h = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, worldX, worldZ) - 1;
+                heights[i][j] = h;
+                if (h < minY) minY = h;
+                
+                net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(worldX, h, worldZ);
+                net.minecraft.world.level.block.state.BlockState state = level.getBlockState(pos);
+                colors[i][j] = state.getMapColor(level, pos).col | 0xFF000000;
             }
         }
+
+        // Render faces
+        for (int i = 0; i < sizeX/stepX; i++)
+        {
+            for (int j = 0; j < sizeZ/stepZ; j++)
+            {
+                float x = i * stepX;
+                float z = j * stepZ;
+                float h = heights[i][j] - minY;
+                int color = colors[i][j];
+
+                // Top Face
+                addFaceHorizontal(buffer, matrix, x, z, x + stepX, z + stepZ, h, color);
+
+                // Check neighbors for sides (simulating 3D blocks)
+                if (i < sizeX/stepX - 1) {
+                    float nextH = heights[i+1][j] - minY;
+                    if (h > nextH) {
+                        // Right Side
+                        int rightColor = darken(color, 40);
+                        addFaceVerticalSide(buffer, matrix, x + stepX, nextH, z, x + stepX, h, z + stepZ, rightColor);
+                    }
+                }
+                
+                if (j < sizeZ/stepZ - 1) {
+                    float nextH = heights[i][j+1] - minY;
+                    if (h > nextH) {
+                        // Front Side
+                        int frontColor = darken(color, 20);
+                        addFace(buffer, matrix, x, nextH, z + stepZ, x + stepX, h, z + stepZ, frontColor);
+                    }
+                }
+            }
+        }
+        
+        RenderSystem.setShader(net.minecraft.client.renderer.GameRenderer::getPositionColorShader);
+        RenderSystem.enableDepthTest();
+        com.mojang.blaze3d.vertex.BufferUploader.drawWithShader(buffer.buildOrThrow());
     }
 
-    private void renderSmallBlock(GuiGraphics guiGraphics, int color)
-    {
-        // Improved shading for clearer 3D look
+    private int darken(int color, int amount) {
         int a = (color >> 24) & 0xFF;
-        int r = (color >> 16) & 0xFF;
-        int g = (color >> 8) & 0xFF;
-        int b = color & 0xFF;
-        
-        // Front
-        guiGraphics.fill(0, 0, 1, 1, color);
-        
-        // Top (Significantly lighter)
-        int topColor = (a << 24) | (Math.min(r + 60, 255) << 16) | (Math.min(g + 60, 255) << 8) | Math.min(b + 60, 255);
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().mulPose(com.mojang.math.Axis.XP.rotationDegrees(-90));
-        guiGraphics.fill(0, 0, 1, 1, topColor);
-        guiGraphics.pose().popPose();
+        int r = Math.max(0, ((color >> 16) & 0xFF) - amount);
+        int g = Math.max(0, ((color >> 8) & 0xFF) - amount);
+        int b = Math.max(0, (color & 0xFF) - amount);
+        return (a << 24) | (r << 16) | (g << 8) | b;
+    }
 
-        // Right (Significantly darker)
-        int rightColor = (a << 24) | (Math.max(r - 60, 0) << 16) | (Math.max(g - 60, 0) << 8) | Math.max(b - 60, 0);
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(1, 0, 0);
-        guiGraphics.pose().mulPose(com.mojang.math.Axis.YP.rotationDegrees(90));
-        guiGraphics.fill(-1, 0, 0, 1, rightColor);
-        guiGraphics.pose().popPose();
+    private void addFace(com.mojang.blaze3d.vertex.BufferBuilder buffer, Matrix4f matrix, float x1, float y1, float z1, float x2, float y2, float z2, int color)
+    {
+        buffer.addVertex(matrix, x1, y2, z1).setColor(color);
+        buffer.addVertex(matrix, x2, y2, z1).setColor(color);
+        buffer.addVertex(matrix, x2, y1, z1).setColor(color);
+        buffer.addVertex(matrix, x1, y1, z1).setColor(color);
+    }
+
+    private void addFaceHorizontal(com.mojang.blaze3d.vertex.BufferBuilder buffer, Matrix4f matrix, float x1, float z1, float x2, float z2, float y, int color)
+    {
+        buffer.addVertex(matrix, x1, y, z1).setColor(color);
+        buffer.addVertex(matrix, x1, y, z2).setColor(color);
+        buffer.addVertex(matrix, x2, y, z2).setColor(color);
+        buffer.addVertex(matrix, x2, y, z1).setColor(color);
+    }
+
+    private void addFaceVerticalSide(com.mojang.blaze3d.vertex.BufferBuilder buffer, Matrix4f matrix, float x, float y1, float z1, float x2, float y2, float z2, int color)
+    {
+        buffer.addVertex(matrix, x, y1, z1).setColor(color);
+        buffer.addVertex(matrix, x, y2, z1).setColor(color);
+        buffer.addVertex(matrix, x, y2, z2).setColor(color);
+        buffer.addVertex(matrix, x, y1, z2).setColor(color);
     }
 
     @Override
