@@ -33,6 +33,7 @@ public class RenameClaimScreen extends Screen
             if (!newName.isEmpty())
             {
                 net.neoforged.neoforge.network.PacketDistributor.sendToServer(new RenameClaimPayload(claim.claimId, newName));
+                claim.displayName = newName; // Local update so UI reflects change immediately
                 minecraft.setScreen(lastScreen);
             }
         }).bounds(this.width / 2 - 105, this.height / 2 + 10, 100, 20).build());
