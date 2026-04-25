@@ -19,4 +19,21 @@ public class ClaimData
         this.pos1 = pos1;
         this.pos2 = pos2;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ClaimData that = (ClaimData) o;
+        return claimId == that.claimId &&
+                java.util.Objects.equals(displayName, that.displayName) &&
+                java.util.Objects.equals(ownerUUID, that.ownerUUID) &&
+                java.util.Objects.equals(pos1, that.pos1) &&
+                java.util.Objects.equals(pos2, that.pos2);
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(claimId, displayName, ownerUUID, pos1, pos2);
+    }
 }

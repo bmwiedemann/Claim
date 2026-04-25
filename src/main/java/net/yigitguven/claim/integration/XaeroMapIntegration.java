@@ -45,10 +45,54 @@ public class XaeroMapIntegration extends ChunkHighlighter
         return true;
     }
 
+    private static int refreshCounter = 0;
+
     @Override
     public int calculateRegionHash(ResourceKey<Level> dimension, int regionX, int regionZ)
     {
-        return (int) (System.currentTimeMillis() / 1000);
+        return refreshCounter;
+    }
+
+    public static void refresh()
+    {
+        refreshCounter++;
+        System.out.println("[Claim] Requesting Xaero Map refresh... Counter: " + refreshCounter);
+        try
+        {
+            if (xaero.map.WorldMap.settings != null)
+            {
+                xaero.map.WorldMap.settings.updateRegionCacheHashCode();
+            }
+            
+            xaero.map.WorldMapSession session = xaero.map.WorldMapSession.getCurrentSession();
+            if (session != null && session.getMapProcessor() != null)
+            {
+                xaero.map.MapProcessor processor = session.getMapProcessor();
+                for (ClaimData claim : ClientClaimManager.getClaims())
+                {
+                    int regionX = Math.min(claim.pos1.getX(), claim.pos2.getX()) >> 9;
+                    int regionZ = Math.min(claim.pos1.getZ(), claim.pos2.getZ()) >> 9;
+                    int maxRegionX = Math.max(claim.pos1.getX(), claim.pos2.getX()) >> 9;
+                    int maxRegionZ = Math.max(claim.pos1.getZ(), claim.pos2.getZ()) >> 9;
+                    
+                    for (int rx = regionX; rx <= maxRegionX; rx++)
+                    {
+                        for (int rz = regionZ; rz <= maxRegionZ; rz++)
+                        {
+                            xaero.map.region.MapRegion region = processor.getLeafMapRegion(rx, rz, processor.getCurrentCaveLayer(), false);
+                            if (region != null)
+                            {
+                                region.requestRefresh(processor);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (Throwable e)
+        {
+            System.err.println("[Claim] Failed to refresh Xaero Map: " + e.getMessage());
+        }
     }
 
     @Override

@@ -39,6 +39,7 @@ public class Claim
 
     private void registerPayloads(final RegisterPayloadHandlersEvent event)
     {
+        LOGGER.info("Registering payloads for mod: {}", MODID);
         final PayloadRegistrar registrar = event.registrar(MODID).versioned("1.0");
         registrar.playToClient(
                 ClaimSyncPayload.TYPE,

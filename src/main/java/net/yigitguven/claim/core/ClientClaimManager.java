@@ -9,6 +9,7 @@ public class ClientClaimManager
 
     public static void setClaims(List<ClaimData> newClaims)
     {
+        System.out.println("[Claim] Setting " + newClaims.size() + " claims on client.");
         claims = new ArrayList<>(newClaims);
     }
 
