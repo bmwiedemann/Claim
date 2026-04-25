@@ -162,17 +162,17 @@ public class ClaimListScreen extends Screen
             int startY = y - s/2;
             float f = s / 128.0f;
             int bCol = 0xFFFFFFFF;
-            float inset = 0.5f; // Small inset to prevent pixel bleeding
+            float margin = 1.0f; // Safe margin to strictly prevent leakage
 
-            // Draw white backing rects for specific placeholder regions with insets for a cleaner fit
-            guiGraphics.fill((int)(startX + (16+inset)*f), (int)(startY + (0+inset)*f), (int)(startX + (63-inset)*f), (int)(startY + (71-inset)*f), bCol);
-            guiGraphics.fill((int)(startX + (16+inset)*f), (int)(startY + (72+inset)*f), (int)(startX + (39-inset)*f), (int)(startY + (127-inset)*f), bCol);
-            guiGraphics.fill((int)(startX + (64+inset)*f), (int)(startY + (8+inset)*f), (int)(startX + (71-inset)*f), (int)(startY + (87-inset)*f), bCol);
-            guiGraphics.fill((int)(startX + (72+inset)*f), (int)(startY + (16+inset)*f), (int)(startX + (111-inset)*f), (int)(startY + (39-inset)*f), bCol);
-            guiGraphics.fill((int)(startX + (72+inset)*f), (int)(startY + (40+inset)*f), (int)(startX + (103-inset)*f), (int)(startY + (47-inset)*f), bCol);
-            guiGraphics.fill((int)(startX + (72+inset)*f), (int)(startY + (48+inset)*f), (int)(startX + (95-inset)*f), (int)(startY + (63-inset)*f), bCol);
-            guiGraphics.fill((int)(startX + (72+inset)*f), (int)(startY + (64+inset)*f), (int)(startX + (103-inset)*f), (int)(startY + (71-inset)*f), bCol);
-            guiGraphics.fill((int)(startX + (72+inset)*f), (int)(startY + (73+inset)*f), (int)(startX + (111-inset)*f), (int)(startY + (87-inset)*f), bCol);
+            // Draw white backing rects for specific placeholder regions with a safe margin
+            guiGraphics.fill((int)(startX + (16+margin)*f), (int)(startY + (0+margin)*f), (int)(startX + (63-margin)*f), (int)(startY + (71-margin)*f), bCol);
+            guiGraphics.fill((int)(startX + (16+margin)*f), (int)(startY + (72+margin)*f), (int)(startX + (39-margin)*f), (int)(startY + (127-margin)*f), bCol);
+            guiGraphics.fill((int)(startX + (64+margin)*f), (int)(startY + (8+margin)*f), (int)(startX + (71-margin)*f), (int)(startY + (87-margin)*f), bCol);
+            guiGraphics.fill((int)(startX + (72+margin)*f), (int)(startY + (16+margin)*f), (int)(startX + (111-margin)*f), (int)(startY + (39-margin)*f), bCol);
+            guiGraphics.fill((int)(startX + (72+margin)*f), (int)(startY + (40+margin)*f), (int)(startX + (103-margin)*f), (int)(startY + (47-margin)*f), bCol);
+            guiGraphics.fill((int)(startX + (72+margin)*f), (int)(startY + (48+margin)*f), (int)(startX + (95-margin)*f), (int)(startY + (63-margin)*f), bCol);
+            guiGraphics.fill((int)(startX + (72+margin)*f), (int)(startY + (64+margin)*f), (int)(startX + (103-margin)*f), (int)(startY + (71-margin)*f), bCol);
+            guiGraphics.fill((int)(startX + (72+margin)*f), (int)(startY + (73+margin)*f), (int)(startX + (111-margin)*f), (int)(startY + (87-margin)*f), bCol);
 
             RenderSystem.setShader(GameRenderer::getPositionTexShader);
             guiGraphics.blit(PLACEHOLDER, startX, startY, 0, 0, s, s, s, s);
