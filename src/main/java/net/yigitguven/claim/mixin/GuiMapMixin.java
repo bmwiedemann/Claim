@@ -21,6 +21,13 @@ public abstract class GuiMapMixin extends net.minecraft.client.gui.screens.Scree
 {
     protected GuiMapMixin(net.minecraft.network.chat.Component title) { super(title); }
 
+    @Override
+    public void removed()
+    {
+        net.yigitguven.claim.integration.XaeroMapState.CURRENT_GUI = null;
+        super.removed();
+    }
+
     @Shadow
     private MapTileSelection mapTileSelection;
 
@@ -30,6 +37,7 @@ public abstract class GuiMapMixin extends net.minecraft.client.gui.screens.Scree
     @Inject(method = "init", at = @At("TAIL"))
     private void claim$init(CallbackInfo ci)
     {
+        net.yigitguven.claim.integration.XaeroMapState.CURRENT_GUI = (GuiMap) (Object) this;
         if (this.claimsButton != null)
         {
             this.claimsButton.visible = true;

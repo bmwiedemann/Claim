@@ -88,6 +88,13 @@ public class XaeroMapIntegration extends ChunkHighlighter
                     }
                 }
             }
+            
+            // If the map GUI is open, toggle claims display to force an immediate redraw
+            if (net.yigitguven.claim.integration.XaeroMapState.CURRENT_GUI != null)
+            {
+                net.yigitguven.claim.integration.XaeroMapState.CURRENT_GUI.onClaimsButton(null);
+                net.yigitguven.claim.integration.XaeroMapState.CURRENT_GUI.onClaimsButton(null);
+            }
         }
         catch (Throwable e)
         {
