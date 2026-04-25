@@ -53,10 +53,10 @@ public class XaeroMapIntegration extends ChunkHighlighter
     protected int[] getColors(ResourceKey<Level> dimension, int chunkX, int chunkZ)
     {
         // Diagnostic log
-        // System.out.println("Highlighting chunk " + chunkX + ", " + chunkZ);
+        System.out.println("Highlighting chunk " + chunkX + ", " + chunkZ);
 
-        // Try Green (ABGR format? 0xFF00FF00 is Green in both)
-        int color = 0xFF00FF00;
+        // Use TestHighlighter's color 1442796919 (0x55FF7D77)
+        int color = 1442796919;
         
         for (int i = 0; i < 5; i++)
         {
