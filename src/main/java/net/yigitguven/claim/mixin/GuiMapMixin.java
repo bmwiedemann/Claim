@@ -34,10 +34,21 @@ public abstract class GuiMapMixin extends net.minecraft.client.gui.screens.Scree
     @Shadow
     private net.minecraft.client.gui.components.Button claimsButton;
 
+    @Inject(method = "onClaimsButton", at = @At("TAIL"))
+    private void claim$onClaimsButton(CallbackInfo ci)
+    {
+        net.yigitguven.claim.integration.XaeroMapIntegration.refresh();
+    }
+
+
     @Inject(method = "init", at = @At("TAIL"))
     private void claim$init(CallbackInfo ci)
     {
         net.yigitguven.claim.integration.XaeroMapState.CURRENT_GUI = (GuiMap) (Object) this;
+        if (xaero.map.WorldMap.settings != null)
+        {
+            xaero.map.WorldMap.settings.updateRegionCacheHashCode();
+        }
         if (this.claimsButton != null)
         {
             this.claimsButton.visible = true;

@@ -59,6 +59,7 @@ public class XaeroMapIntegration extends ChunkHighlighter
     }
 
     private static int refreshCounter = 0;
+    private static boolean isRefreshing = false;
 
     @Override
     public int calculateRegionHash(ResourceKey<Level> dimension, int regionX, int regionZ)
@@ -68,6 +69,8 @@ public class XaeroMapIntegration extends ChunkHighlighter
 
     public static void refresh()
     {
+        if (isRefreshing) return;
+        isRefreshing = true;
         refreshCounter++;
         System.out.println("[Claim] Requesting Xaero Map refresh... Counter: " + refreshCounter);
         try
@@ -112,6 +115,10 @@ public class XaeroMapIntegration extends ChunkHighlighter
         catch (Throwable e)
         {
             System.err.println("[Claim] Failed to refresh Xaero Map: " + e.getMessage());
+        }
+        finally
+        {
+            isRefreshing = false;
         }
     }
 
