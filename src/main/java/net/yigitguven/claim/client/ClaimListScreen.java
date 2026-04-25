@@ -149,14 +149,14 @@ public class ClaimListScreen extends Screen
         if (!areChunksLoaded(claim))
         {
             // Render placeholder fallback
-            RenderSystem.disableDepthTest();
+            Lighting.setupForFlatItems();
             RenderSystem.setShader(GameRenderer::getPositionTexShader);
             RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
             int s = (int)scale * 2;
-            // Stretching the texture to fit the slot
-            guiGraphics.blit(PLACEHOLDER, x - s/2, y - s/2, 0, 0, s, s, 128, 128);
+            // Sampling the full texture by matching the texture size parameter to the target size
+            guiGraphics.blit(PLACEHOLDER, x - s/2, y - s/2, 0, 0, s, s, s, s);
             return;
         }
 
@@ -248,38 +248,6 @@ public class ClaimListScreen extends Screen
         
         bufferSource.endBatch();
         guiGraphics.pose().popPose();
-    }
-
-    private int darken(int color, float factor) {
-        int a = (color >> 24) & 0xFF;
-        int r = (int)(((color >> 16) & 0xFF) * factor);
-        int g = (int)(((color >> 8) & 0xFF) * factor);
-        int b = (int)((color & 0xFF) * factor);
-        return (a << 24) | (r << 16) | (g << 8) | b;
-    }
-
-    private void addFace(com.mojang.blaze3d.vertex.BufferBuilder buffer, Matrix4f matrix, float x1, float y1, float z1, float x2, float y2, float z2, int color)
-    {
-        buffer.addVertex(matrix, x1, y2, z1).setColor(color);
-        buffer.addVertex(matrix, x2, y2, z1).setColor(color);
-        buffer.addVertex(matrix, x2, y1, z1).setColor(color);
-        buffer.addVertex(matrix, x1, y1, z1).setColor(color);
-    }
-
-    private void addFaceHorizontal(com.mojang.blaze3d.vertex.BufferBuilder buffer, Matrix4f matrix, float x1, float z1, float x2, float z2, float y, int color)
-    {
-        buffer.addVertex(matrix, x1, y, z1).setColor(color);
-        buffer.addVertex(matrix, x1, y, z2).setColor(color);
-        buffer.addVertex(matrix, x2, y, z2).setColor(color);
-        buffer.addVertex(matrix, x2, y, z1).setColor(color);
-    }
-
-    private void addFaceVerticalSide(com.mojang.blaze3d.vertex.BufferBuilder buffer, Matrix4f matrix, float x, float y1, float z1, float x2, float y2, float z2, int color)
-    {
-        buffer.addVertex(matrix, x, y1, z1).setColor(color);
-        buffer.addVertex(matrix, x, y2, z1).setColor(color);
-        buffer.addVertex(matrix, x, y2, z2).setColor(color);
-        buffer.addVertex(matrix, x, y1, z2).setColor(color);
     }
 
     @Override
