@@ -38,6 +38,7 @@ public abstract class GuiMapMixin extends net.minecraft.client.gui.screens.Scree
     private void claim$onClaimsButton(CallbackInfo ci)
     {
         net.yigitguven.claim.integration.XaeroMapIntegration.refresh();
+        claim$updateButtonTooltip();
     }
 
 
@@ -50,6 +51,20 @@ public abstract class GuiMapMixin extends net.minecraft.client.gui.screens.Scree
         {
             this.claimsButton.visible = true;
             this.claimsButton.active = true;
+            claim$updateButtonTooltip();
+        }
+    }
+
+    private void claim$updateButtonTooltip()
+    {
+        if (this.claimsButton instanceof net.yigitguven.claim.mixin.TooltipButtonAccessor accessor)
+        {
+            boolean enabled = net.yigitguven.claim.integration.XaeroMapIntegration.isEnabled();
+            String state = enabled ? "Showing" : "Hidden";
+            String text = "Claim mod is in control\nStatus: " + state;
+            accessor.setTooltipSupplier(() -> new xaero.lib.client.gui.widget.Tooltip(text));
+            // Remove Minecraft tooltip to prevent overlapping
+            this.claimsButton.setTooltip(null);
         }
     }
 
