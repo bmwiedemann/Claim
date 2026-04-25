@@ -154,9 +154,25 @@ public class ClaimListScreen extends Screen
             RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
+            
             int s = (int)scale * 2;
+            int startX = x - s/2;
+            int startY = y - s/2;
+            float f = s / 128.0f; // Scale factor for 128x128 coordinates
+            int bCol = 0xFFFFFFFF;
+
+            // Draw white backing rects for specific placeholder regions
+            guiGraphics.fill((int)(startX + 16*f), (int)(startY + 0*f), (int)(startX + 63*f), (int)(startY + 71*f), bCol);
+            guiGraphics.fill((int)(startX + 16*f), (int)(startY + 72*f), (int)(startX + 39*f), (int)(startY + 127*f), bCol);
+            guiGraphics.fill((int)(startX + 64*f), (int)(startY + 8*f), (int)(startX + 71*f), (int)(startY + 87*f), bCol);
+            guiGraphics.fill((int)(startX + 72*f), (int)(startY + 16*f), (int)(startX + 111*f), (int)(startY + 39*f), bCol);
+            guiGraphics.fill((int)(startX + 72*f), (int)(startY + 40*f), (int)(startX + 103*f), (int)(startY + 47*f), bCol);
+            guiGraphics.fill((int)(startX + 72*f), (int)(startY + 48*f), (int)(startX + 95*f), (int)(startY + 63*f), bCol);
+            guiGraphics.fill((int)(startX + 72*f), (int)(startY + 64*f), (int)(startX + 103*f), (int)(startY + 71*f), bCol);
+            guiGraphics.fill((int)(startX + 72*f), (int)(startY + 73*f), (int)(startX + 111*f), (int)(startY + 87*f), bCol);
+
             // Sampling the full texture by matching the texture size parameter to the target size
-            guiGraphics.blit(PLACEHOLDER, x - s/2, y - s/2, 0, 0, s, s, s, s);
+            guiGraphics.blit(PLACEHOLDER, startX, startY, 0, 0, s, s, s, s);
             return;
         }
 
