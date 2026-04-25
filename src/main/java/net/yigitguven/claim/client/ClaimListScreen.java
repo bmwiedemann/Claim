@@ -149,30 +149,34 @@ public class ClaimListScreen extends Screen
         if (!areChunksLoaded(claim))
         {
             // Render placeholder fallback
-            Lighting.setupForFlatItems();
-            RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(0, 0, 10); // Subtle Z-offset
+
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
+            RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
+            Lighting.setupForFlatItems();
             
             int s = (int)scale * 2;
             int startX = x - s/2;
             int startY = y - s/2;
-            float f = s / 128.0f; // Scale factor for 128x128 coordinates
+            float f = s / 128.0f;
             int bCol = 0xFFFFFFFF;
 
             // Draw white backing rects for specific placeholder regions
-            guiGraphics.fill((int)(startX + 16*f), (int)(startY + 0*f), (int)(startX + 63*f), (int)(startY + 71*f), bCol);
-            guiGraphics.fill((int)(startX + 16*f), (int)(startY + 72*f), (int)(startX + 39*f), (int)(startY + 127*f), bCol);
-            guiGraphics.fill((int)(startX + 64*f), (int)(startY + 8*f), (int)(startX + 71*f), (int)(startY + 87*f), bCol);
-            guiGraphics.fill((int)(startX + 72*f), (int)(startY + 16*f), (int)(startX + 111*f), (int)(startY + 39*f), bCol);
-            guiGraphics.fill((int)(startX + 72*f), (int)(startY + 40*f), (int)(startX + 103*f), (int)(startY + 47*f), bCol);
-            guiGraphics.fill((int)(startX + 72*f), (int)(startY + 48*f), (int)(startX + 95*f), (int)(startY + 63*f), bCol);
-            guiGraphics.fill((int)(startX + 72*f), (int)(startY + 64*f), (int)(startX + 103*f), (int)(startY + 71*f), bCol);
-            guiGraphics.fill((int)(startX + 72*f), (int)(startY + 73*f), (int)(startX + 111*f), (int)(startY + 87*f), bCol);
+            guiGraphics.fill(startX + (int)(16*f), startY + (int)(0*f), startX + (int)(63*f), startY + (int)(71*f), bCol);
+            guiGraphics.fill(startX + (int)(16*f), startY + (int)(72*f), startX + (int)(39*f), startY + (int)(127*f), bCol);
+            guiGraphics.fill(startX + (int)(64*f), startY + (int)(8*f), startX + (int)(71*f), startY + (int)(87*f), bCol);
+            guiGraphics.fill(startX + (int)(72*f), startY + (int)(16*f), startX + (int)(111*f), startY + (int)(39*f), bCol);
+            guiGraphics.fill(startX + (int)(72*f), startY + (int)(40*f), startX + (int)(103*f), startY + (int)(47*f), bCol);
+            guiGraphics.fill(startX + (int)(72*f), startY + (int)(48*f), startX + (int)(95*f), startY + (int)(63*f), bCol);
+            guiGraphics.fill(startX + (int)(72*f), startY + (int)(64*f), startX + (int)(103*f), startY + (int)(71*f), bCol);
+            guiGraphics.fill(startX + (int)(72*f), startY + (int)(73*f), startX + (int)(111*f), startY + (int)(87*f), bCol);
 
-            // Sampling the full texture by matching the texture size parameter to the target size
+            RenderSystem.setShader(GameRenderer::getPositionTexShader);
             guiGraphics.blit(PLACEHOLDER, startX, startY, 0, 0, s, s, s, s);
+            
+            guiGraphics.pose().popPose();
             return;
         }
 
