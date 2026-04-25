@@ -42,6 +42,12 @@ public class ClaimCommand
                     ClaimManager.addClaim(context.getSource().getLevel(), player.getScoreboardName() + "'s Claim", player.getUUID(), pos1, pos2);
                     player.displayClientMessage(Component.literal("Area claimed successfully via command!"), false);
                     return 1;
-                }))));
+                })))
+                .then(Commands.literal("list")
+                        .executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            player.connection.send(new net.yigitguven.claim.network.OpenClaimListPayload());
+                            return 1;
+                        })));
     }
 }

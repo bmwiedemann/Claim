@@ -6,3 +6,4 @@
 - Added JSON-based claim persistence (saves to world/data/claim/claims.json).
 - Added Xaero's World Map integration (claims are now visible on the map).
 - Implemented networking system to sync claims from server to client.
+- Implemented /claim list command with a custom 3D-styled management screen.

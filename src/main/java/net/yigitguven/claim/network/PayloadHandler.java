@@ -36,4 +36,11 @@ public class PayloadHandler
             }
         });
     }
+
+    public static void handleOpenList(final OpenClaimListPayload payload, final IPayloadContext context)
+    {
+        context.enqueueWork(() -> {
+            net.minecraft.client.Minecraft.getInstance().setScreen(new net.yigitguven.claim.client.ClaimListScreen());
+        });
+    }
 }
