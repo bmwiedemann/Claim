@@ -62,9 +62,9 @@ public class Claim
                 PayloadHandler::handleOpenList
         );
         registrar.playToServer(
-                net.yigitguven.claim.network.RenameClaimPayload.TYPE,
-                net.yigitguven.claim.network.RenameClaimPayload.CODEC,
-                PayloadHandler::handleRename
+                net.yigitguven.claim.network.UpdateClaimMetadataPayload.TYPE,
+                net.yigitguven.claim.network.UpdateClaimMetadataPayload.STREAM_CODEC,
+                PayloadHandler::handleUpdateMetadata
         );
     }
 

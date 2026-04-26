@@ -44,12 +44,14 @@ public class PayloadHandler
         });
     }
 
-    public static void handleRename(final RenameClaimPayload payload, final IPayloadContext context)
+    public static void handleUpdateMetadata(final UpdateClaimMetadataPayload payload, final IPayloadContext context)
     {
         context.enqueueWork(() -> {
             if (context.player() instanceof net.minecraft.server.level.ServerPlayer player)
             {
-                net.yigitguven.claim.core.ClaimManager.renameClaim(player.serverLevel(), payload.claimId(), payload.newName(), player.getUUID());
+                net.yigitguven.claim.core.ClaimManager.updateClaimMetadata(player.serverLevel(), 
+                    payload.claimId(), payload.name(), payload.description(), 
+                    payload.mode(), payload.color(), payload.trustedPlayers(), player.getUUID());
             }
         });
     }

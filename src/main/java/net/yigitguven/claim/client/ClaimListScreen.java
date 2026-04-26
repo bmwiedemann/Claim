@@ -7,16 +7,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.yigitguven.claim.core.ClaimData;
 import net.yigitguven.claim.core.ClientClaimManager;
-import org.joml.Matrix4f;
-import org.joml.Quaternionf;
-import net.minecraft.client.renderer.block.BlockRenderDispatcher;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.block.state.BlockState;
-import com.mojang.blaze3d.platform.Lighting;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,14 +15,9 @@ import java.util.UUID;
 public class ClaimListScreen extends Screen
 {
     private List<ClaimData> playerClaims = new ArrayList<>();
-    private List<Button> renameButtons = new ArrayList<>();
-    private java.util.Map<Integer, CachedTerrain> terrainCache = new java.util.HashMap<>();
+    private List<Button> configButtons = new ArrayList<>();
     private float rotation = 0;
     private double scrollAmount = 0;
-    
-    private static final net.minecraft.resources.ResourceLocation PLACEHOLDER = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("claim", "textures/gui/placeholder.png");
-
-    private record CachedTerrain(net.minecraft.client.renderer.RenderType renderType, int vertexCount) {}
 
     public ClaimListScreen()
     {
@@ -48,17 +33,15 @@ public class ClaimListScreen extends Screen
                 .toList();
 
         this.clearWidgets();
-        renameButtons.clear();
-        // Clear terrain cache to refresh blocks
-        terrainCache.clear();
+        configButtons.clear();
 
         for (ClaimData claim : playerClaims)
         {
-            Button btn = Button.builder(Component.literal("Rename"), (b) -> openRenameDialog(claim))
-                    .bounds(0, 0, 60, 20)
+            Button btn = Button.builder(Component.literal("Configure"), (b) -> openConfigureScreen(claim))
+                    .bounds(0, 0, 70, 20)
                     .build();
             this.addRenderableWidget(btn);
-            renameButtons.add(btn);
+            configButtons.add(btn);
         }
     }
 
@@ -92,7 +75,7 @@ public class ClaimListScreen extends Screen
                 int x = startX + (i % columns) * spacingX;
                 int y = startY + (i / columns) * spacingY;
 
-                Button btn = renameButtons.get(i);
+                Button btn = configButtons.get(i);
                 btn.setX(x - btn.getWidth() / 2);
                 btn.setY((int)(y + scale + 10 - scrollAmount));
                 btn.visible = btn.getY() + btn.getHeight() > 40 && btn.getY() < this.height - 10;
@@ -105,7 +88,7 @@ public class ClaimListScreen extends Screen
                     guiGraphics.renderOutline(x - (int)scale - 5, y - (int)scale - 5, (int)scale * 2 + 10, (int)scale * 2 + 10, 0xFFFFFFFF);
                 }
 
-                renderCached3DClaim(guiGraphics, claim, x, y, rotation, scale);
+                ClaimRenderHelper.renderClaimPreview(guiGraphics, claim, x, y, rotation, scale, false);
             }
             
             guiGraphics.pose().popPose();
@@ -139,144 +122,9 @@ public class ClaimListScreen extends Screen
         return true;
     }
 
-    private void openRenameDialog(ClaimData claim)
+    private void openConfigureScreen(ClaimData claim)
     {
-        minecraft.setScreen(new RenameClaimScreen(this, claim));
-    }
-
-    private void renderCached3DClaim(GuiGraphics guiGraphics, ClaimData claim, int x, int y, float rot, float scale)
-    {
-        if (!areChunksLoaded(claim))
-        {
-            // Render placeholder fallback
-            guiGraphics.pose().pushPose();
-            guiGraphics.pose().translate(0, 0, 10); // Subtle Z-offset
-
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
-            Lighting.setupForFlatItems();
-            
-            int s = (int)scale * 2;
-            int startX = x - s/2;
-            int startY = y - s/2;
-            float f = s / 128.0f;
-            int bCol = 0xFFFFFFFF;
-            float margin = 1.0f; // Safe margin to strictly prevent leakage
-
-            // Draw white backing rects for specific placeholder regions with a safe margin
-            guiGraphics.fill((int)(startX + (16+margin)*f), (int)(startY + (0+margin)*f), (int)(startX + (63-margin)*f), (int)(startY + (71-margin)*f), bCol);
-            guiGraphics.fill((int)(startX + (16+margin)*f), (int)(startY + (72+margin)*f), (int)(startX + (39-margin)*f), (int)(startY + (127-margin)*f), bCol);
-            guiGraphics.fill((int)(startX + (64+margin)*f), (int)(startY + (8+margin)*f), (int)(startX + (71-margin)*f), (int)(startY + (87-margin)*f), bCol);
-            guiGraphics.fill((int)(startX + (72+margin)*f), (int)(startY + (16+margin)*f), (int)(startX + (111-margin)*f), (int)(startY + (39-margin)*f), bCol);
-            guiGraphics.fill((int)(startX + (72+margin)*f), (int)(startY + (40+margin)*f), (int)(startX + (103-margin)*f), (int)(startY + (47-margin)*f), bCol);
-            guiGraphics.fill((int)(startX + (72+margin)*f), (int)(startY + (48+margin)*f), (int)(startX + (95-margin)*f), (int)(startY + (63-margin)*f), bCol);
-            guiGraphics.fill((int)(startX + (72+margin)*f), (int)(startY + (64+margin)*f), (int)(startX + (103-margin)*f), (int)(startY + (71-margin)*f), bCol);
-            guiGraphics.fill((int)(startX + (72+margin)*f), (int)(startY + (73+margin)*f), (int)(startX + (111-margin)*f), (int)(startY + (87-margin)*f), bCol);
-
-            RenderSystem.setShader(GameRenderer::getPositionTexShader);
-            guiGraphics.blit(PLACEHOLDER, startX, startY, 0, 0, s, s, s, s);
-            
-            guiGraphics.pose().popPose();
-            return;
-        }
-
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(x, y, 300);
-        
-        // Setup lighting for the 3D model
-        Lighting.setupFor3DItems();
-        
-        renderProjectorPreview(guiGraphics, claim, rot, scale);
-
-        Lighting.setupForFlatItems();
-        guiGraphics.pose().popPose();
-    }
-
-    private boolean areChunksLoaded(ClaimData claim)
-    {
-        net.minecraft.client.multiplayer.ClientLevel level = minecraft.level;
-        if (level == null) return false;
-        
-        // Check if the center of the claim area is loaded
-        int centerX = (claim.pos1.getX() + claim.pos2.getX()) / 2;
-        int centerZ = (claim.pos1.getZ() + claim.pos2.getZ()) / 2;
-        return level.getChunkSource().hasChunk(centerX >> 4, centerZ >> 4);
-    }
-
-    private void renderProjectorPreview(GuiGraphics guiGraphics, ClaimData claim, float rot, float scale)
-    {
-        net.minecraft.client.multiplayer.ClientLevel level = minecraft.level;
-        if (level == null) return;
-
-        int minX = Math.min(claim.pos1.getX(), claim.pos2.getX());
-        int maxX = Math.max(claim.pos1.getX(), claim.pos2.getX());
-        int minZ = Math.min(claim.pos1.getZ(), claim.pos2.getZ());
-        int maxZ = Math.max(claim.pos1.getZ(), claim.pos2.getZ());
-
-        int sizeX = maxX - minX + 1;
-        int sizeZ = maxZ - minZ + 1;
-
-        int minY = Math.min(claim.pos1.getY(), claim.pos2.getY());
-        int maxY = Math.max(claim.pos1.getY(), claim.pos2.getY());
-
-        // Find global highest block INSIDE the claim boundaries to anchor the "projector"
-        int globalMaxH = minY;
-        int sampleStep = Math.max(1, Math.max(sizeX, sizeZ) / 16);
-        for (int i = 0; i < sizeX; i += sampleStep) {
-            for (int j = 0; j < sizeZ; j += sampleStep) {
-                // Find highest non-air block within the claim's Y volume
-                for (int h = maxY; h >= minY; h--) {
-                    if (!level.getBlockState(new BlockPos(minX + i, h, minZ + j)).isAir()) {
-                        if (h > globalMaxH) globalMaxH = h;
-                        break;
-                    }
-                }
-            }
-        }
-
-        // Calculate fit scale - ensure small claims zoom in more to fill the slot
-        float diag = (float) Math.sqrt(sizeX * sizeX + sizeZ * sizeZ + 16 * 16);
-        float fitScale = (scale * 1.75f) / Math.max(diag, 12f);
-
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().scale(fitScale, -fitScale, fitScale);
-        
-        Quaternionf quaternion = new Quaternionf()
-                .rotateX((float) Math.toRadians(25))
-                .rotateY((float) Math.toRadians(rot));
-        guiGraphics.pose().mulPose(quaternion);
-        
-        guiGraphics.pose().translate(-sizeX / 2.0f, 0, -sizeZ / 2.0f);
-
-        BlockRenderDispatcher dispatcher = minecraft.getBlockRenderer();
-        MultiBufferSource.BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
-
-        int step = Math.max(1, Math.max(sizeX, sizeZ) / 40);
-        
-        for (int i = 0; i < sizeX; i += step)
-        {
-            for (int j = 0; j < sizeZ; j += step)
-            {
-                int worldX = minX + i;
-                int worldZ = minZ + j;
-                
-                // Render from globalMaxH down to globalMaxH - 16, staying within claim Y bounds
-                for (int y = globalMaxH; y >= minY && y > globalMaxH - 16; y--) {
-                    BlockPos pos = new BlockPos(worldX, y, worldZ);
-                    BlockState state = level.getBlockState(pos);
-                    if (state.isAir()) continue;
-
-                    guiGraphics.pose().pushPose();
-                    guiGraphics.pose().translate(i, y - globalMaxH, j); // Relative to global max
-                    dispatcher.renderSingleBlock(state, guiGraphics.pose(), bufferSource, 15728880, OverlayTexture.NO_OVERLAY);
-                    guiGraphics.pose().popPose();
-                }
-            }
-        }
-        
-        bufferSource.endBatch();
-        guiGraphics.pose().popPose();
+        minecraft.setScreen(new ConfigureClaimScreen(this, claim));
     }
 
     @Override

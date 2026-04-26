@@ -76,13 +76,18 @@ public class ClaimManager
         }
     }
 
-    public static void renameClaim(ServerLevel level, int claimId, String newName, UUID ownerUUID)
+    public static void updateClaimMetadata(ServerLevel level, int claimId, String newName, String description, ClaimData.PermissionMode mode, int color, List<UUID> trustedPlayers, UUID ownerUUID)
     {
         for (ClaimData claim : claims)
         {
             if (claim.claimId == claimId && claim.ownerUUID.equals(ownerUUID))
             {
                 claim.displayName = newName;
+                claim.description = description;
+                claim.permissionMode = mode;
+                claim.color = color;
+                claim.trustedPlayers = new ArrayList<>(trustedPlayers);
+                
                 save(level);
                 for (ServerPlayer player : level.getServer().getPlayerList().getPlayers())
                 {
