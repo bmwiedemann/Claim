@@ -1,12 +1,14 @@
 <p align="center">
   <a href="https://github.com/yigit-guven/Claim">
-    <img src="https://raw.githubusercontent.com/yigit-guven/Claim/9d066da2a0d31a3442bdabc085a4e936cb484cbd/src/main/resources/logo.png" alt="Claim Logo" width="400"/>
+    <img src="https://raw.githubusercontent.com/yigit-guven/Claim/9d066da2a0d31a3442bdabc085a4e936cb484cbd/src/main/resources/logo.png" alt="Claim Logo" width="250"/>
   </a>
 </p>
 
-# Claim
+<h1 align="center">Claim</h1>
 
-Claim is a land management system for Minecraft designed for territory security and administration. It provides a robust protection system, a 3D management interface, and deep integration with Xaero's World Map.
+<p align="center">
+  Claim is a land management system for Minecraft designed for territory security and administration. It provides a robust protection system, a 3D management interface, and deep integration with Xaero's World Map.
+</p>
 
 ## Features
 
@@ -44,4 +46,6 @@ Configuration settings are located in `config/claim-common.toml`:
 - **Persistence**: Claims are stored in `world/data/claim/claims.json` for easy backup and management.
 
 ---
-© 2026 Yigit Guven. Licensed under GNU GPLv3.
+<p align="center">
+  © 2026 Yigit Guven. Licensed under GNU GPLv3.
+</p>
