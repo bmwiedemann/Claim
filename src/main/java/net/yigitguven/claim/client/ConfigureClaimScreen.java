@@ -8,6 +8,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.yigitguven.claim.core.ClaimData;
+import net.yigitguven.claim.core.ClientClaimManager;
 import net.yigitguven.claim.network.UpdateClaimMetadataPayload;
 
 import java.util.ArrayList;
@@ -92,12 +93,9 @@ public class ConfigureClaimScreen extends Screen
                 claim.claimId, newName, newDesc, permissionMode, newColor, trustedPlayers
             ));
             
-            // Optimistic update
-            claim.displayName = newName;
-            claim.description = newDesc;
-            claim.permissionMode = permissionMode;
-            claim.color = newColor;
-            claim.trustedPlayers = trustedPlayers;
+            // Perform a deep optimistic update on the manager's global list
+            // This ensures that when we reload the ClaimListScreen, it gets the updated data
+            ClientClaimManager.updateClaimOptimistically(claim.claimId, newName, newDesc, permissionMode, newColor, trustedPlayers);
             
             // Reload the list screen to show changes
             minecraft.setScreen(new ClaimListScreen());

@@ -2,6 +2,7 @@ package net.yigitguven.claim.core;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class ClientClaimManager
 {
@@ -16,5 +17,21 @@ public class ClientClaimManager
     public static List<ClaimData> getClaims()
     {
         return claims;
+    }
+
+    public static void updateClaimOptimistically(int id, String name, String desc, ClaimData.PermissionMode mode, int color, List<UUID> trusted)
+    {
+        for (ClaimData claim : claims)
+        {
+            if (claim.claimId == id)
+            {
+                claim.displayName = name;
+                claim.description = desc;
+                claim.permissionMode = mode;
+                claim.color = color;
+                claim.trustedPlayers = new ArrayList<>(trusted);
+                break;
+            }
+        }
     }
 }
