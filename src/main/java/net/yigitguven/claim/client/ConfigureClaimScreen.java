@@ -30,9 +30,15 @@ public class ConfigureClaimScreen extends Screen
     
     private float rotation = 0;
     
-    private static final int[] PRESET_COLORS = {
+    private static final int[] PRESET_VALUES = {
         0xFF55FF7D, 0xFF5555FF, 0xFFFF5555, 0xFFFFFF55, 
         0xFFAA00AA, 0xFF55FFFF, 0xFFFFAA00, 0xFFFFFFFF
+    };
+    
+    // The VISUAL colors the user wants to see on the UI buttons
+    private static final int[] PRESET_DISPLAY_COLORS = {
+        0xFF00FF00, 0xFFFF0000, 0xFF00008B, 0xFF00FFFF, 
+        0xFF800080, 0xFFFFFF00, 0xFF0000FF, 0xFFFFFFFF
     };
 
     public ConfigureClaimScreen(Screen lastScreen, ClaimData claim)
@@ -70,14 +76,13 @@ public class ConfigureClaimScreen extends Screen
         }).bounds(rightStart, 102, inputWidth, 18).build());
 
         // Color Selection
-        for (int i = 0; i < PRESET_COLORS.length; i++) {
-            int color = PRESET_COLORS[i];
+        for (int i = 0; i < PRESET_VALUES.length; i++) {
+            final int actualValue = PRESET_VALUES[i];
             int bx = rightStart + (i % 4) * (inputWidth / 4 + 2);
             int by = 135 + (i / 4) * 22;
             this.addRenderableWidget(Button.builder(Component.literal(""), (btn) -> {
-                selectedColor = color;
-                // Live update the claim object for the preview
-                claim.color = color;
+                selectedColor = actualValue;
+                claim.color = actualValue; // Live update preview
             }).bounds(bx, by, inputWidth / 4 - 2, 18).build());
         }
 
@@ -94,7 +99,6 @@ public class ConfigureClaimScreen extends Screen
         }).bounds(this.width / 2 - 105, buttonY, 100, 20).build());
 
         this.addRenderableWidget(Button.builder(Component.literal("Cancel"), (btn) -> {
-            // Restore original color if cancelled
             claim.color = originalColor;
             minecraft.setScreen(lastScreen);
         }).bounds(this.width / 2 + 5, buttonY, 100, 20).build());
@@ -135,9 +139,18 @@ public class ConfigureClaimScreen extends Screen
         int previewY = this.height / 2 - 10;
         float previewScale = Math.min(this.width / 6.0f, this.height / 3.5f);
         
+        // Find the visual color for the border based on the selected internal value
+        int borderDisplayColor = 0xFFFFFFFF;
+        for (int i = 0; i < PRESET_VALUES.length; i++) {
+            if (PRESET_VALUES[i] == selectedColor) {
+                borderDisplayColor = PRESET_DISPLAY_COLORS[i];
+                break;
+            }
+        }
+        
         guiGraphics.fill(20, 30, this.width / 2 - 10, this.height - 50, 0x40000000);
-        // Use selectedColor for the live preview border
-        guiGraphics.renderOutline(20, 30, this.width / 2 - 30, this.height - 80, selectedColor);
+        // Use the display color for the UI border
+        guiGraphics.renderOutline(20, 30, this.width / 2 - 30, this.height - 80, borderDisplayColor);
 
         ClaimRenderHelper.renderClaimPreview(guiGraphics, claim, previewX, previewY, rotation, previewScale, true);
 
@@ -167,12 +180,15 @@ public class ConfigureClaimScreen extends Screen
         super.render(guiGraphics, mouseX, mouseY, partialTick);
 
         int inputWidth = Math.min(160, this.width / 2 - 40);
-        for (int i = 0; i < PRESET_COLORS.length; i++) {
-            int color = PRESET_COLORS[i];
+        for (int i = 0; i < PRESET_VALUES.length; i++) {
+            int displayColor = PRESET_DISPLAY_COLORS[i];
+            int actualValue = PRESET_VALUES[i];
             int bx = rightStart + (i % 4) * (inputWidth / 4 + 2);
             int by = 135 + (i / 4) * 22;
-            guiGraphics.fill(bx + 3, by + 3, bx + (inputWidth / 4 - 5), by + 15, color);
-            if (color == selectedColor) {
+            
+            guiGraphics.fill(bx + 3, by + 3, bx + (inputWidth / 4 - 5), by + 15, displayColor);
+            
+            if (actualValue == selectedColor) {
                 guiGraphics.renderOutline(bx + 1, by + 1, inputWidth / 4 - 4, 16, 0xFFFFFFFF);
             }
         }
