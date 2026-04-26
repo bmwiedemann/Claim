@@ -7,4 +7,8 @@
 - Added Xaero's World Map integration (claims are now visible on the map).
 - Implemented networking system to sync claims from server to client.
 - Implemented /claim list command with a custom 3D-styled management screen.
+- Improved 3D previews to support terrain elevation variations and strict Y-boundary clipping.
+- Added claim metadata system (trusted players, permission modes, color, and timestamps).
 - Implemented overlap protection to prevent players from claiming already occupied areas.
+- Compacted Configuration UI to support all screen sizes and GUI scales.
+- Implemented deep optimistic updates for instant configuration synchronization.
