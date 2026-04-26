@@ -10,5 +10,9 @@ public class ModConfig
             .comment("The item used to select claim positions. Format: 'modid:itemid'")
             .define("selectionTool", "minecraft:wooden_shovel");
 
+    public static final ModConfigSpec.BooleanValue OP_BYPASS = BUILDER
+            .comment("Whether Operators (OPs) should bypass claim protections.")
+            .define("opBypass", true);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 }

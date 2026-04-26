@@ -12,6 +12,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.yigitguven.claim.Claim;
+import net.yigitguven.claim.config.ModConfig;
 
 import java.util.UUID;
 
@@ -67,13 +68,16 @@ public class ProtectionHandler {
     private static boolean isProtected(Player player, BlockPos pos, boolean isModification) {
         if (player.getCommandSenderWorld().isClientSide) return false;
         
-        // Updated Bypass Rules for Testing:
-        // 1. Creative mode players NO LONGER bypass protections (for testing purposes).
-        // 2. Operators (OP) bypass claims, EXCEPT if their name is "Dev".
+        // Bypass Rules:
+        // 1. Creative mode players are NO LONGER bypassing (for testing).
+        // 2. Operators (OP) bypass ONLY if 'opBypass' is enabled in the config.
+        // 3. Players named "Dev" NEVER bypass (to allow testing OP/Admin logic).
+        
         boolean isOp = player.hasPermissions(2);
         boolean isDev = player.getName().getString().equals("Dev");
+        boolean opBypassConfig = ModConfig.OP_BYPASS.get();
         
-        if (isOp && !isDev) {
+        if (isOp && opBypassConfig && !isDev) {
             return false;
         }
 
