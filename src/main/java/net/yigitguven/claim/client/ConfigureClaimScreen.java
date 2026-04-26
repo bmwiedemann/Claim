@@ -99,7 +99,8 @@ public class ConfigureClaimScreen extends Screen
             claim.color = newColor;
             claim.trustedPlayers = trustedPlayers;
             
-            minecraft.setScreen(lastScreen);
+            // Reload the list screen to show changes
+            minecraft.setScreen(new ClaimListScreen());
         }
     }
 
