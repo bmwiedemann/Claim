@@ -98,6 +98,25 @@ public class ClaimManager
         }
     }
 
+    public static ClaimData getClaimAt(BlockPos pos)
+    {
+        for (ClaimData claim : claims)
+        {
+            if (isInside(pos, claim.pos1, claim.pos2))
+            {
+                return claim;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isInside(BlockPos pos, BlockPos p1, BlockPos p2)
+    {
+        return pos.getX() >= Math.min(p1.getX(), p2.getX()) && pos.getX() <= Math.max(p1.getX(), p2.getX()) &&
+               pos.getY() >= Math.min(p1.getY(), p2.getY()) && pos.getY() <= Math.max(p1.getY(), p2.getY()) &&
+               pos.getZ() >= Math.min(p1.getZ(), p2.getZ()) && pos.getZ() <= Math.max(p1.getZ(), p2.getZ());
+    }
+
     public static List<ClaimData> getClaims()
     {
         return new ArrayList<>(claims);
