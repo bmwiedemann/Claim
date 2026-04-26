@@ -37,10 +37,21 @@ public class PlayerDataManager {
         return PLAYER_DATA_MAP.computeIfAbsent(uuid, k -> new PlayerData(ModConfig.INITIAL_CLAIM_BLOCKS.get()));
     }
 
-    public static void addClaimBlocks(UUID uuid, int amount) {
-        if (!ModConfig.USE_CLAIM_BLOCKS.get()) return;
+    public static boolean addClaimBlocks(UUID uuid, int amount) {
+        if (!ModConfig.USE_CLAIM_BLOCKS.get()) return true;
+        
         PlayerData data = getOrCreateData(uuid);
+        int max = ModConfig.MAX_TOTAL_BLOCKS.get();
+        
+        if (max > 0 && data.claimBlocks >= max) {
+            return false;
+        }
+        
         data.claimBlocks += amount;
+        if (max > 0 && data.claimBlocks > max) {
+            data.claimBlocks = max;
+        }
+        return true;
     }
 
     public static boolean consumeClaimBlocks(UUID uuid, int amount) {
@@ -54,7 +65,7 @@ public class PlayerDataManager {
     }
 
     public static int getAvailableBlocks(UUID uuid) {
-        if (!ModConfig.USE_CLAIM_BLOCKS.get()) return -1; // Indicator for "disabled"
+        if (!ModConfig.USE_CLAIM_BLOCKS.get()) return -1;
         return getOrCreateData(uuid).claimBlocks;
     }
 
@@ -67,10 +78,12 @@ public class PlayerDataManager {
         if (data.playtimeSeconds >= 3600) {
             int rewards = (int) (data.playtimeSeconds / 3600);
             int amount = rewards * ModConfig.HOURLY_REWARD.get();
-            data.claimBlocks += amount;
+            
+            if (addClaimBlocks(player.getUUID(), amount)) {
+                player.displayClientMessage(net.minecraft.network.chat.Component.literal("§aYou earned " + amount + " claim blocks for playing!"), false);
+            }
+            
             data.playtimeSeconds %= 3600;
-
-            player.displayClientMessage(net.minecraft.network.chat.Component.literal("§aYou earned " + amount + " claim blocks for playing!"), false);
         }
     }
 

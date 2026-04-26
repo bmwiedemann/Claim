@@ -1,12 +1,7 @@
-## [2.0.0-alpha.2] - 2026-04-26
+## [2.0.0-alpha.3] - 2026-04-27
 
 ### Added
-- Optional **Claim Block Economy** system (Disabled by default).
-- **Playtime Rewards**: Automatic claim block rewards granted for every hour of active play.
-- **Dynamic UI**: Real-time display of available claim blocks in the management dashboard.
-- **Auto-Save**: Periodic background saving for claims and player data.
-- **Categorized Configuration**: Reorganized `claim-common.toml` into `[general]` and `[economy]` sections.
-
-### Fixed
-- Fixed area selection logic to correctly calculate and enforce block costs.
-- Improved persistence handling for multi-player server environments.
+- **Expanding Territories**: Added an optional adjacency requirement for new claims to ensure contiguous growth.
+- **Claim Block Items**: Added a system to earn claim blocks by consuming specific items (configurable, default: Gold Ingot).
+- **Hard Block Cap**: Added a maximum limit for total claim block accumulation.
+- **Improved Validation**: Added specific feedback messages for adjacency and block limit failures.

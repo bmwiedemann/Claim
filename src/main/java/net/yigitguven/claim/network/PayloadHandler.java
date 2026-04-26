@@ -7,6 +7,7 @@ import net.yigitguven.claim.core.ClientClaimManager;
 import net.yigitguven.claim.core.ClaimManager;
 import net.yigitguven.claim.core.PlayerDataManager;
 import net.yigitguven.claim.core.ClaimData;
+import net.yigitguven.claim.config.ModConfig;
 
 import java.util.List;
 
@@ -26,6 +27,14 @@ public class PayloadHandler
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player)
             {
+                // Adjacency Check
+                if (ModConfig.REQUIRE_ADJACENCY.get()) {
+                    if (!ClaimManager.isAdjacentToOwnedClaim(player.getUUID(), payload.pos1(), payload.pos2())) {
+                        player.displayClientMessage(Component.literal("§cNew claims must be adjacent to your existing territory!"), false);
+                        return;
+                    }
+                }
+
                 int xSize = Math.abs(payload.pos1().getX() - payload.pos2().getX()) + 1;
                 int zSize = Math.abs(payload.pos1().getZ() - payload.pos2().getZ()) + 1;
                 int area = xSize * zSize;
@@ -51,7 +60,6 @@ public class PayloadHandler
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player)
             {
-                // Calculate refund before removal
                 int refundAmount = 0;
                 List<ClaimData> allClaims = ClaimManager.getClaims();
                 for (ClaimData claim : allClaims) {
