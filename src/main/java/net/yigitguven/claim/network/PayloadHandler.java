@@ -1,38 +1,73 @@
 package net.yigitguven.claim.network;
 
+import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.minecraft.server.level.ServerPlayer;
 import net.yigitguven.claim.core.ClientClaimManager;
+import net.yigitguven.claim.core.ClaimManager;
+import net.yigitguven.claim.core.PlayerDataManager;
+import net.yigitguven.claim.core.ClaimData;
+
+import java.util.List;
 
 public class PayloadHandler
 {
     public static void handleSync(final ClaimSyncPayload payload, final IPayloadContext context)
     {
-        System.out.println("[Claim] Received sync payload with " + payload.claims().size() + " claims.");
         context.enqueueWork(() -> {
             ClientClaimManager.setClaims(payload.claims());
-            System.out.println("[Claim] Claims updated in ClientClaimManager. Refreshing Xaero Map...");
+            ClientClaimManager.setAvailableBlocks(payload.availableBlocks());
             net.yigitguven.claim.integration.XaeroMapIntegration.refresh();
         });
     }
 
-    public static void handleRequestClaim(final net.yigitguven.claim.network.RequestClaimPayload payload, final IPayloadContext context)
+    public static void handleRequestClaim(final RequestClaimPayload payload, final IPayloadContext context)
     {
-        System.out.println("[Claim] Received request claim payload from " + context.player().getName().getString());
         context.enqueueWork(() -> {
-            if (context.player() instanceof net.minecraft.server.level.ServerPlayer player)
+            if (context.player() instanceof ServerPlayer player)
             {
-                System.out.println("[Claim] Adding claim for " + player.getName().getString() + " at " + payload.pos1() + " to " + payload.pos2());
-                net.yigitguven.claim.core.ClaimManager.addClaim(player.serverLevel(), player.getName().getString() + "'s Claim", player.getUUID(), payload.pos1(), payload.pos2());
+                int xSize = Math.abs(payload.pos1().getX() - payload.pos2().getX()) + 1;
+                int zSize = Math.abs(payload.pos1().getZ() - payload.pos2().getZ()) + 1;
+                int area = xSize * zSize;
+                
+                if (PlayerDataManager.consumeClaimBlocks(player.getUUID(), area)) {
+                    boolean success = ClaimManager.addClaim(player.serverLevel(), player.getName().getString() + "'s Claim", player.getUUID(), payload.pos1(), payload.pos2());
+                    if (!success) {
+                        PlayerDataManager.addClaimBlocks(player.getUUID(), area);
+                        player.displayClientMessage(Component.literal("§cClaim failed! Area might be already claimed."), false);
+                    } else {
+                        player.displayClientMessage(Component.literal("§aClaim created! Used " + area + " blocks."), false);
+                    }
+                } else {
+                    int available = PlayerDataManager.getAvailableBlocks(player.getUUID());
+                    player.displayClientMessage(Component.literal("§cNot enough claim blocks! Need: " + area + ", Have: " + available), false);
+                }
             }
         });
     }
 
-    public static void handleRequestUnclaim(final net.yigitguven.claim.network.RequestUnclaimPayload payload, final IPayloadContext context)
+    public static void handleRequestUnclaim(final RequestUnclaimPayload payload, final IPayloadContext context)
     {
         context.enqueueWork(() -> {
-            if (context.player() instanceof net.minecraft.server.level.ServerPlayer player)
+            if (context.player() instanceof ServerPlayer player)
             {
-                net.yigitguven.claim.core.ClaimManager.removeClaims(player.serverLevel(), payload.claimIds(), player.getUUID());
+                // Calculate refund before removal
+                int refundAmount = 0;
+                List<ClaimData> allClaims = ClaimManager.getClaims();
+                for (ClaimData claim : allClaims) {
+                    if (payload.claimIds().contains(claim.claimId) && claim.ownerUUID.equals(player.getUUID())) {
+                        int xSize = Math.abs(claim.pos1.getX() - claim.pos2.getX()) + 1;
+                        int zSize = Math.abs(claim.pos1.getZ() - claim.pos2.getZ()) + 1;
+                        refundAmount += (xSize * zSize);
+                    }
+                }
+                
+                ClaimManager.removeClaims(player.serverLevel(), payload.claimIds(), player.getUUID());
+                
+                if (refundAmount > 0) {
+                    PlayerDataManager.addClaimBlocks(player.getUUID(), refundAmount);
+                    player.displayClientMessage(Component.literal("§aUnclaimed! Refunded " + refundAmount + " blocks."), false);
+                }
             }
         });
     }
@@ -47,9 +82,9 @@ public class PayloadHandler
     public static void handleUpdateMetadata(final UpdateClaimMetadataPayload payload, final IPayloadContext context)
     {
         context.enqueueWork(() -> {
-            if (context.player() instanceof net.minecraft.server.level.ServerPlayer player)
+            if (context.player() instanceof ServerPlayer player)
             {
-                net.yigitguven.claim.core.ClaimManager.updateClaimMetadata(player.serverLevel(), 
+                ClaimManager.updateClaimMetadata(player.serverLevel(), 
                     payload.claimId(), payload.name(), payload.description(), 
                     payload.mode(), payload.color(), payload.trustedPlayers(), player.getUUID());
             }

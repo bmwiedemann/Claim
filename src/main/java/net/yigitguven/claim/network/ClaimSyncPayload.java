@@ -13,12 +13,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public record ClaimSyncPayload(List<ClaimData> claims) implements CustomPacketPayload
+public record ClaimSyncPayload(List<ClaimData> claims, int availableBlocks) implements CustomPacketPayload
 {
     public static final Type<ClaimSyncPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Claim.MODID, "claim_sync"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, ClaimSyncPayload> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.collection(ArrayList::new, ClaimDataCodec.STREAM_CODEC), ClaimSyncPayload::claims,
+            ByteBufCodecs.VAR_INT, ClaimSyncPayload::availableBlocks,
             ClaimSyncPayload::new
     );
 

@@ -50,6 +50,14 @@ public class ClaimListScreen extends Screen
     {
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         
+        // Render available blocks at top right (if enabled)
+        int available = ClientClaimManager.getAvailableBlocks();
+        if (available >= 0) {
+            String blocksText = "Available Blocks: " + available;
+            int textWidth = this.font.width(blocksText);
+            guiGraphics.drawString(this.font, blocksText, this.width - textWidth - 10, 10, 0xFF55FF7D);
+        }
+
         if (playerClaims.isEmpty())
         {
             guiGraphics.drawCenteredString(this.font, "No claims found.", this.width / 2, this.height / 2, 0xFFFFFF);
