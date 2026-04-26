@@ -32,7 +32,6 @@ public class XaeroMapIntegration extends ChunkHighlighter
 
             if (chunkX >= minX && chunkX <= maxX && chunkZ >= minZ && chunkZ <= maxZ)
             {
-                System.out.println("[Claim] chunkIsHighlit true for " + chunkX + ", " + chunkZ);
                 return true;
             }
         }
@@ -72,7 +71,6 @@ public class XaeroMapIntegration extends ChunkHighlighter
         if (isRefreshing) return;
         isRefreshing = true;
         refreshCounter++;
-        System.out.println("[Claim] Requesting Xaero Map refresh... Counter: " + refreshCounter);
         try
         {
             if (xaero.map.WorldMap.settings != null)
@@ -105,7 +103,6 @@ public class XaeroMapIntegration extends ChunkHighlighter
                 }
             }
             
-            // If the map GUI is open, toggle claims display to force an immediate redraw
             if (net.yigitguven.claim.integration.XaeroMapState.CURRENT_GUI != null)
             {
                 net.yigitguven.claim.integration.XaeroMapState.CURRENT_GUI.onClaimsButton(null);
@@ -125,8 +122,6 @@ public class XaeroMapIntegration extends ChunkHighlighter
     @Override
     protected int[] getColors(ResourceKey<Level> dimension, int chunkX, int chunkZ)
     {
-        System.out.println("[Claim] getColors for " + chunkX + ", " + chunkZ);
-
         ClaimData foundClaim = null;
         for (ClaimData claim : ClientClaimManager.getClaims())
         {
@@ -144,17 +139,17 @@ public class XaeroMapIntegration extends ChunkHighlighter
 
         if (foundClaim == null || !isEnabled()) return null;
 
-        // Use the color that was working
-        int color = 1442796919; // Green (0x55FF7D77)
+        // Use the actual claim color but with 0x55 (approx 33%) transparency
+        // Clear existing alpha and set to 0x55
+        int color = (foundClaim.color & 0x00FFFFFF) | 0x55000000;
 
-        // Try to add red for others
-        try {
-            UUID playerUUID = Minecraft.getInstance().player != null ? Minecraft.getInstance().player.getUUID() : null;
-            if (playerUUID != null && !playerUUID.equals(foundClaim.ownerUUID)) {
-                // Red color with same alpha (0x55)
-                color = 0x55FF0000;
+        // Logic for foreign claims: if not owned and not trusted, show as red
+        UUID playerUUID = Minecraft.getInstance().player != null ? Minecraft.getInstance().player.getUUID() : null;
+        if (playerUUID != null && !playerUUID.equals(foundClaim.ownerUUID)) {
+            if (!foundClaim.trustedPlayers.contains(playerUUID)) {
+                color = 0x55FF0000; // Red for others
             }
-        } catch (Exception e) {}
+        }
 
         for (int i = 0; i < 5; i++)
         {
