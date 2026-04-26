@@ -10,6 +10,7 @@ public class ModConfig
     public static final ModConfigSpec.ConfigValue<String> SELECTION_TOOL;
     public static final ModConfigSpec.BooleanValue OP_BYPASS;
     public static final ModConfigSpec.BooleanValue REQUIRE_ADJACENCY;
+    public static final ModConfigSpec.BooleanValue PROTECT_ONLY_HOME_CLAIM;
 
     // Economy Category
     public static final ModConfigSpec.BooleanValue USE_CLAIM_BLOCKS;
@@ -34,6 +35,10 @@ public class ModConfig
         REQUIRE_ADJACENCY = BUILDER
                 .comment("If true, new claims must be adjacent to an existing claim owned by the player (after the first claim).")
                 .define("requireAdjacency", false);
+
+        PROTECT_ONLY_HOME_CLAIM = BUILDER
+                .comment("If true, only the player's FIRST claim is protected. Subsequent claims ('Expansions') can be invaded/modified by anyone.")
+                .define("protectOnlyHomeClaim", false);
         BUILDER.pop();
 
         BUILDER.push("economy");
