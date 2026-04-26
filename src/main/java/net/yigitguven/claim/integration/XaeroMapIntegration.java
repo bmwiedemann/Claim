@@ -13,8 +13,6 @@ import java.util.UUID;
 
 public class XaeroMapIntegration extends ChunkHighlighter
 {
-    private final int[] resultStore = new int[5];
-
     public XaeroMapIntegration()
     {
         super(true);
@@ -139,24 +137,22 @@ public class XaeroMapIntegration extends ChunkHighlighter
 
         if (foundClaim == null || !isEnabled()) return null;
 
-        // Use the actual claim color but with 0x55 (approx 33%) transparency
-        // Clear existing alpha and set to 0x55
+        // Use the claim's color with transparency (0x55 alpha)
         int color = (foundClaim.color & 0x00FFFFFF) | 0x55000000;
 
-        // Logic for foreign claims: if not owned and not trusted, show as red
-        UUID playerUUID = Minecraft.getInstance().player != null ? Minecraft.getInstance().player.getUUID() : null;
-        if (playerUUID != null && !playerUUID.equals(foundClaim.ownerUUID)) {
-            if (!foundClaim.trustedPlayers.contains(playerUUID)) {
-                color = 0x55FF0000; // Red for others
+        // Force RED for other players' untrusted claims
+        try {
+            UUID playerUUID = Minecraft.getInstance().player != null ? Minecraft.getInstance().player.getUUID() : null;
+            if (playerUUID != null && !playerUUID.equals(foundClaim.ownerUUID)) {
+                if (!foundClaim.trustedPlayers.contains(playerUUID)) {
+                    color = 0x55FF0000; // Red for foreign untrusted claims
+                }
             }
-        }
+        } catch (Exception e) {}
 
-        for (int i = 0; i < 5; i++)
-        {
-            resultStore[i] = color;
-        }
-        
-        return resultStore;
+        // IMPORTANT: We MUST return a NEW array to prevent color bleeding between claims
+        // Returning a shared array causes Xaero's Map to apply the last calculated color to the entire region.
+        return new int[] { color, color, color, color, color };
     }
 
     @Override

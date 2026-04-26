@@ -20,6 +20,7 @@ public class ConfigureClaimScreen extends Screen
 {
     private final Screen lastScreen;
     private final ClaimData claim;
+    private final int originalColor;
     
     private EditBox nameBox;
     private EditBox descBox;
@@ -42,6 +43,7 @@ public class ConfigureClaimScreen extends Screen
         this.permissionMode = claim.permissionMode;
         this.trustedPlayers = new ArrayList<>(claim.trustedPlayers);
         this.selectedColor = claim.color;
+        this.originalColor = claim.color;
     }
 
     @Override
@@ -74,6 +76,8 @@ public class ConfigureClaimScreen extends Screen
             int by = 135 + (i / 4) * 22;
             this.addRenderableWidget(Button.builder(Component.literal(""), (btn) -> {
                 selectedColor = color;
+                // Live update the claim object for the preview
+                claim.color = color;
             }).bounds(bx, by, inputWidth / 4 - 2, 18).build());
         }
 
@@ -90,6 +94,8 @@ public class ConfigureClaimScreen extends Screen
         }).bounds(this.width / 2 - 105, buttonY, 100, 20).build());
 
         this.addRenderableWidget(Button.builder(Component.literal("Cancel"), (btn) -> {
+            // Restore original color if cancelled
+            claim.color = originalColor;
             minecraft.setScreen(lastScreen);
         }).bounds(this.width / 2 + 5, buttonY, 100, 20).build());
     }
@@ -130,6 +136,7 @@ public class ConfigureClaimScreen extends Screen
         float previewScale = Math.min(this.width / 6.0f, this.height / 3.5f);
         
         guiGraphics.fill(20, 30, this.width / 2 - 10, this.height - 50, 0x40000000);
+        // Use selectedColor for the live preview border
         guiGraphics.renderOutline(20, 30, this.width / 2 - 30, this.height - 80, selectedColor);
 
         ClaimRenderHelper.renderClaimPreview(guiGraphics, claim, previewX, previewY, rotation, previewScale, true);
@@ -157,20 +164,14 @@ public class ConfigureClaimScreen extends Screen
             guiGraphics.drawString(this.font, "...+" + (trustedPlayers.size() - 2) + " more", rightStart + 5, ty, 0xFF888888);
         }
 
-        // Render widgets (buttons)
         super.render(guiGraphics, mouseX, mouseY, partialTick);
 
-        // RENDER COLOR OVERLAYS AFTER SUPER.RENDER so they are visible on top of buttons
         int inputWidth = Math.min(160, this.width / 2 - 40);
         for (int i = 0; i < PRESET_COLORS.length; i++) {
             int color = PRESET_COLORS[i];
             int bx = rightStart + (i % 4) * (inputWidth / 4 + 2);
             int by = 135 + (i / 4) * 22;
-            
-            // Fill the button with the color
             guiGraphics.fill(bx + 3, by + 3, bx + (inputWidth / 4 - 5), by + 15, color);
-            
-            // Draw highlight if selected
             if (color == selectedColor) {
                 guiGraphics.renderOutline(bx + 1, by + 1, inputWidth / 4 - 4, 16, 0xFFFFFFFF);
             }
