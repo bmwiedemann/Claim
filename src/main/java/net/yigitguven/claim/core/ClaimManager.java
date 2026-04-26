@@ -26,8 +26,13 @@ public class ClaimManager
     private static final List<ClaimData> claims = new ArrayList<>();
     private static int nextClaimId = 0;
 
-    public static void addClaim(ServerLevel level, String displayName, UUID ownerUUID, BlockPos pos1, BlockPos pos2)
+    public static boolean addClaim(ServerLevel level, String displayName, UUID ownerUUID, BlockPos pos1, BlockPos pos2)
     {
+        if (isAreaClaimed(pos1, pos2))
+        {
+            return false;
+        }
+
         claims.add(new ClaimData(nextClaimId++, displayName, ownerUUID, pos1, pos2));
         save(level);
         
@@ -36,6 +41,29 @@ public class ClaimManager
         {
             Claim.syncClaims(player);
         }
+        return true;
+    }
+
+    public static boolean isAreaClaimed(BlockPos pos1, BlockPos pos2)
+    {
+        for (ClaimData claim : claims)
+        {
+            if (intersects(pos1, pos2, claim.pos1, claim.pos2))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean intersects(BlockPos a1, BlockPos a2, BlockPos b1, BlockPos b2)
+    {
+        return Math.min(a1.getX(), a2.getX()) <= Math.max(b1.getX(), b2.getX()) &&
+               Math.max(a1.getX(), a2.getX()) >= Math.min(b1.getX(), b2.getX()) &&
+               Math.min(a1.getY(), a2.getY()) <= Math.max(b1.getY(), b2.getY()) &&
+               Math.max(a1.getY(), a2.getY()) >= Math.min(b1.getY(), b2.getY()) &&
+               Math.min(a1.getZ(), a2.getZ()) <= Math.max(b1.getZ(), b2.getZ()) &&
+               Math.max(a1.getZ(), a2.getZ()) >= Math.min(b1.getZ(), b2.getZ());
     }
 
     public static void removeClaims(ServerLevel level, List<Integer> claimIds, UUID playerUUID)

@@ -21,10 +21,17 @@ public class ClaimCommand
 
                     if (selection.isComplete())
                     {
-                        ClaimManager.addClaim(context.getSource().getLevel(), player.getScoreboardName() + "'s Claim", player.getUUID(), selection.pos1, selection.pos2);
-                        player.displayClientMessage(Component.literal("Area claimed successfully!"), false);
-                        selection.reset();
-                        return 1;
+                        if (ClaimManager.addClaim(context.getSource().getLevel(), player.getScoreboardName() + "'s Claim", player.getUUID(), selection.pos1, selection.pos2))
+                        {
+                            player.displayClientMessage(Component.literal("Area claimed successfully!"), false);
+                            selection.reset();
+                            return 1;
+                        }
+                        else
+                        {
+                            player.displayClientMessage(Component.literal("This area (or part of it) is already claimed!"), false);
+                            return 0;
+                        }
                     }
                     else
                     {
@@ -39,9 +46,16 @@ public class ClaimCommand
                     BlockPos pos1 = BlockPosArgument.getLoadedBlockPos(context, "pos1");
                     BlockPos pos2 = BlockPosArgument.getLoadedBlockPos(context, "pos2");
 
-                    ClaimManager.addClaim(context.getSource().getLevel(), player.getScoreboardName() + "'s Claim", player.getUUID(), pos1, pos2);
-                    player.displayClientMessage(Component.literal("Area claimed successfully via command!"), false);
-                    return 1;
+                    if (ClaimManager.addClaim(context.getSource().getLevel(), player.getScoreboardName() + "'s Claim", player.getUUID(), pos1, pos2))
+                    {
+                        player.displayClientMessage(Component.literal("Area claimed successfully via command!"), false);
+                        return 1;
+                    }
+                    else
+                    {
+                        player.displayClientMessage(Component.literal("This area (or part of it) is already claimed!"), false);
+                        return 0;
+                    }
                 })))
                 .then(Commands.literal("list")
                         .executes(context -> {
