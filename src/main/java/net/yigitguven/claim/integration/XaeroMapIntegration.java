@@ -137,21 +137,23 @@ public class XaeroMapIntegration extends ChunkHighlighter
 
         if (foundClaim == null || !isEnabled()) return null;
 
-        // Use the claim's color with transparency (0x55 alpha)
-        int color = (foundClaim.color & 0x00FFFFFF) | 0x55000000;
-
-        // Force RED for other players' untrusted claims
-        try {
-            UUID playerUUID = Minecraft.getInstance().player != null ? Minecraft.getInstance().player.getUUID() : null;
-            if (playerUUID != null && !playerUUID.equals(foundClaim.ownerUUID)) {
-                if (!foundClaim.trustedPlayers.contains(playerUUID)) {
-                    color = 0x55FF0000; // Red for foreign untrusted claims
-                }
+        // Xaero's Map expects ABGR format for highlighters.
+        // We convert our ARGB color to ABGR with 0x55 alpha.
+        int argb = foundClaim.color;
+        
+        // Check for foreign untrusted claims and force red
+        UUID playerUUID = Minecraft.getInstance().player != null ? Minecraft.getInstance().player.getUUID() : null;
+        if (playerUUID != null && !playerUUID.equals(foundClaim.ownerUUID)) {
+            if (!foundClaim.trustedPlayers.contains(playerUUID)) {
+                argb = 0xFFFF0000; // Opaque Red (will be converted)
             }
-        } catch (Exception e) {}
+        }
 
-        // IMPORTANT: We MUST return a NEW array to prevent color bleeding between claims
-        // Returning a shared array causes Xaero's Map to apply the last calculated color to the entire region.
+        int r = (argb >> 16) & 0xFF;
+        int g = (argb >> 8) & 0xFF;
+        int b = argb & 0xFF;
+        int color = (0x55 << 24) | (b << 16) | (g << 8) | r; // ABGR
+
         return new int[] { color, color, color, color, color };
     }
 
