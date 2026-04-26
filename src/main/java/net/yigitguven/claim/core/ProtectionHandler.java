@@ -46,10 +46,8 @@ public class ProtectionHandler {
         }
 
         // 2. Check for bucket usage (Filling or Emptying)
-        // Since FillBucketEvent had compilation issues, we handle it here via RightClickBlock
         ItemStack stack = event.getItemStack();
         if (stack.getItem() instanceof BucketItem || stack.getItem() instanceof SolidBucketItem) {
-            // Check the target position where the fluid would be placed or taken from
             BlockPos targetPos = pos.relative(event.getFace());
             if (isProtected(player, targetPos, true)) {
                 event.setCanceled(true);
@@ -68,7 +66,16 @@ public class ProtectionHandler {
 
     private static boolean isProtected(Player player, BlockPos pos, boolean isModification) {
         if (player.getCommandSenderWorld().isClientSide) return false;
-        if (player.isCreative() || player.hasPermissions(2)) return false;
+        
+        // Updated Bypass Rules for Testing:
+        // 1. Creative mode players NO LONGER bypass protections (for testing purposes).
+        // 2. Operators (OP) bypass claims, EXCEPT if their name is "Dev".
+        boolean isOp = player.hasPermissions(2);
+        boolean isDev = player.getName().getString().equals("Dev");
+        
+        if (isOp && !isDev) {
+            return false;
+        }
 
         ClaimData claim = ClaimManager.getClaimAt(pos);
         if (claim == null) return false;
