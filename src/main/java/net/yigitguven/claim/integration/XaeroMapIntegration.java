@@ -137,26 +137,22 @@ public class XaeroMapIntegration extends ChunkHighlighter
 
         if (foundClaim == null || !isEnabled()) return null;
 
-        // Extract ARGB channels from the claim color
         int argb = foundClaim.color;
         
-        // Check for foreign untrusted claims and highlight them distinctly
         UUID playerUUID = Minecraft.getInstance().player != null ? Minecraft.getInstance().player.getUUID() : null;
         if (playerUUID != null && !playerUUID.equals(foundClaim.ownerUUID)) {
             if (!foundClaim.trustedPlayers.contains(playerUUID)) {
-                argb = 0xFFFF0000; // Red for foreign untrusted claims
+                argb = 0xFFFF0000; // Red
             }
         }
 
-        int a = (argb >> 24) & 0xFF;
         int r = (argb >> 16) & 0xFF;
         int g = (argb >> 8) & 0xFF;
         int b = argb & 0xFF;
         
-        // Xaero's map format can be tricky depending on the version. 
-        // Based on "Red became Grey/Blue", it expects ABGR.
-        // We use a slightly higher alpha (0x66) for better visibility.
-        int color = (0x66 << 24) | (b << 16) | (g << 8) | r;
+        // Let's try RGBA format (Red, Green, Blue, Alpha)
+        // Some systems/versions of the map might interpret the int differently.
+        int color = (r << 24) | (g << 16) | (b << 8) | 0x66;
 
         return new int[] { color, color, color, color, color };
     }
