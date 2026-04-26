@@ -1,8 +1,11 @@
 <h1 align="center">
   <a href="https://github.com/yigit-guven/Claim">
-    <img src="https://raw.githubusercontent.com/yigit-guven/Claim/9d066da2a0d31a3442bdabc085a4e936cb484cbd/src/main/resources/logo.png" alt="Claim Logo" width="80" style="vertical-align: middle;"/>
+    <img src="https://raw.githubusercontent.com/yigit-guven/Claim/9d066da2a0d31a3442bdabc085a4e936cb484cbd/src/main/resources/logo.png" alt="Claim Logo" width="30" style="vertical-align: middle;"/>
   </a>
   Claim
+  <a href="https://github.com/yigit-guven/Claim">
+    <img src="https://raw.githubusercontent.com/yigit-guven/Claim/9d066da2a0d31a3442bdabc085a4e936cb484cbd/src/main/resources/logo.png" alt="Claim Logo" width="30" style="vertical-align: middle;"/>
+  </a>
 </h1>
 
 <p align="center">
