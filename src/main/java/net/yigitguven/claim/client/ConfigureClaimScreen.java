@@ -14,6 +14,7 @@ import net.yigitguven.claim.network.UpdateClaimMetadataPayload;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class ConfigureClaimScreen extends Screen
 {
@@ -22,11 +23,16 @@ public class ConfigureClaimScreen extends Screen
     
     private EditBox nameBox;
     private EditBox descBox;
-    private EditBox colorBox;
+    private int selectedColor;
     private ClaimData.PermissionMode permissionMode;
     private List<UUID> trustedPlayers;
     
     private float rotation = 0;
+    
+    private static final int[] PRESET_COLORS = {
+        0xFF55FF7D, 0xFF5555FF, 0xFFFF5555, 0xFFFFFF55, 
+        0xFFAA00AA, 0xFF55FFFF, 0xFFFFAA00, 0xFFFFFFFF
+    };
 
     public ConfigureClaimScreen(Screen lastScreen, ClaimData claim)
     {
@@ -35,6 +41,7 @@ public class ConfigureClaimScreen extends Screen
         this.claim = claim;
         this.permissionMode = claim.permissionMode;
         this.trustedPlayers = new ArrayList<>(claim.trustedPlayers);
+        this.selectedColor = claim.color;
     }
 
     @Override
@@ -42,15 +49,15 @@ public class ConfigureClaimScreen extends Screen
     {
         int leftWidth = this.width / 2;
         int rightStart = leftWidth + 20;
-        int inputWidth = 160;
+        int inputWidth = Math.min(160, this.width / 2 - 40);
 
         // Name field
-        this.nameBox = new EditBox(this.font, rightStart, 60, inputWidth, 20, Component.literal("Name"));
+        this.nameBox = new EditBox(this.font, rightStart, 38, inputWidth, 18, Component.literal("Name"));
         this.nameBox.setValue(claim.displayName);
         this.addRenderableWidget(this.nameBox);
 
         // Description field
-        this.descBox = new EditBox(this.font, rightStart, 100, inputWidth, 20, Component.literal("Description"));
+        this.descBox = new EditBox(this.font, rightStart, 72, inputWidth, 18, Component.literal("Description"));
         this.descBox.setValue(claim.description != null ? claim.description : "");
         this.addRenderableWidget(this.descBox);
 
@@ -58,46 +65,56 @@ public class ConfigureClaimScreen extends Screen
         this.addRenderableWidget(Button.builder(Component.literal("Access: " + permissionMode.name()), (btn) -> {
             permissionMode = (permissionMode == ClaimData.PermissionMode.PRIVATE) ? ClaimData.PermissionMode.PUBLIC : ClaimData.PermissionMode.PRIVATE;
             btn.setMessage(Component.literal("Access: " + permissionMode.name()));
-        }).bounds(rightStart, 140, inputWidth, 20).build());
+        }).bounds(rightStart, 102, inputWidth, 18).build());
 
-        // Color Hex
-        this.colorBox = new EditBox(this.font, rightStart, 180, inputWidth, 20, Component.literal("Color (Hex)"));
-        this.colorBox.setValue(String.format("%08X", claim.color));
-        this.addRenderableWidget(this.colorBox);
+        // Color Selection
+        for (int i = 0; i < PRESET_COLORS.length; i++) {
+            int color = PRESET_COLORS[i];
+            int bx = rightStart + (i % 4) * (inputWidth / 4 + 2);
+            int by = 135 + (i / 4) * 22;
+            this.addRenderableWidget(Button.builder(Component.literal(""), (btn) -> {
+                selectedColor = color;
+            }).bounds(bx, by, inputWidth / 4 - 2, 18).build());
+        }
+
+        // Trusted Players Management
+        int trustedY = 190;
+        this.addRenderableWidget(Button.builder(Component.literal("Add Player"), (btn) -> {
+            openOnlinePlayerSelector();
+        }).bounds(rightStart, trustedY, inputWidth, 18).build());
 
         // Save / Cancel at bottom
-        int buttonY = this.height - 40;
+        int buttonY = this.height - 30;
         this.addRenderableWidget(Button.builder(Component.literal("Save Changes"), (btn) -> {
             saveAndExit();
-        }).bounds(this.width / 2 - 110, buttonY, 100, 20).build());
+        }).bounds(this.width / 2 - 105, buttonY, 100, 20).build());
 
         this.addRenderableWidget(Button.builder(Component.literal("Cancel"), (btn) -> {
             minecraft.setScreen(lastScreen);
-        }).bounds(this.width / 2 + 10, buttonY, 100, 20).build());
+        }).bounds(this.width / 2 + 5, buttonY, 100, 20).build());
+    }
+
+    private void openOnlinePlayerSelector() {
+        if (minecraft.getConnection() == null) return;
+        List<net.minecraft.client.multiplayer.PlayerInfo> online = new ArrayList<>(minecraft.getConnection().getOnlinePlayers());
+        List<net.minecraft.client.multiplayer.PlayerInfo> candidates = online.stream()
+                .filter(p -> !trustedPlayers.contains(p.getProfile().getId()) && !p.getProfile().getId().equals(minecraft.player.getUUID()))
+                .collect(Collectors.toList());
+
+        if (candidates.isEmpty()) return;
+        trustedPlayers.add(candidates.get(0).getProfile().getId());
     }
 
     private void saveAndExit()
     {
         String newName = nameBox.getValue();
         String newDesc = descBox.getValue();
-        int newColor;
-        try {
-            newColor = (int) Long.parseLong(colorBox.getValue(), 16);
-        } catch (NumberFormatException e) {
-            newColor = claim.color;
-        }
-
         if (!newName.isEmpty())
         {
             PacketDistributor.sendToServer(new UpdateClaimMetadataPayload(
-                claim.claimId, newName, newDesc, permissionMode, newColor, trustedPlayers
+                claim.claimId, newName, newDesc, permissionMode, selectedColor, trustedPlayers
             ));
-            
-            // Perform a deep optimistic update on the manager's global list
-            // This ensures that when we reload the ClaimListScreen, it gets the updated data
-            ClientClaimManager.updateClaimOptimistically(claim.claimId, newName, newDesc, permissionMode, newColor, trustedPlayers);
-            
-            // Reload the list screen to show changes
+            ClientClaimManager.updateClaimOptimistically(claim.claimId, newName, newDesc, permissionMode, selectedColor, trustedPlayers);
             minecraft.setScreen(new ClaimListScreen());
         }
     }
@@ -107,27 +124,52 @@ public class ConfigureClaimScreen extends Screen
     {
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         
-        // Render 3D Preview on the left
         rotation += partialTick * 1.0f;
         int previewX = this.width / 4;
-        int previewY = this.height / 2 - 20;
-        float previewScale = this.width / 6.0f;
+        int previewY = this.height / 2 - 10;
+        float previewScale = Math.min(this.width / 6.0f, this.height / 3.5f);
         
-        // Draw a nice dark backing for the preview
-        guiGraphics.fill(20, 40, this.width / 2 - 10, this.height - 60, 0x40000000);
-        guiGraphics.renderOutline(20, 40, this.width / 2 - 30, this.height - 100, 0xFF55FF7D);
+        guiGraphics.fill(20, 30, this.width / 2 - 10, this.height - 50, 0x40000000);
+        guiGraphics.renderOutline(20, 30, this.width / 2 - 30, this.height - 80, selectedColor);
 
         ClaimRenderHelper.renderClaimPreview(guiGraphics, claim, previewX, previewY, rotation, previewScale, true);
 
-        // Render Labels
-        guiGraphics.drawString(this.font, "Display Name", this.width / 2 + 20, 48, 0xFFAAAAAA);
-        guiGraphics.drawString(this.font, "Description", this.width / 2 + 20, 88, 0xFFAAAAAA);
-        guiGraphics.drawString(this.font, "Default Permissions", this.width / 2 + 20, 128, 0xFFAAAAAA);
-        guiGraphics.drawString(this.font, "Claim Color (Hex ARGB)", this.width / 2 + 20, 168, 0xFFAAAAAA);
+        int rightStart = this.width / 2 + 20;
+        guiGraphics.drawString(this.font, "Name", rightStart, 28, 0xFFAAAAAA);
+        guiGraphics.drawString(this.font, "Description", rightStart, 62, 0xFFAAAAAA);
+        guiGraphics.drawString(this.font, "Permissions", rightStart, 92, 0xFFAAAAAA);
+        guiGraphics.drawString(this.font, "Color", rightStart, 125, 0xFFAAAAAA);
+        
+        int inputWidth = Math.min(160, this.width / 2 - 40);
+        for (int i = 0; i < PRESET_COLORS.length; i++) {
+            int color = PRESET_COLORS[i];
+            int bx = rightStart + (i % 4) * (inputWidth / 4 + 2);
+            int by = 135 + (i / 4) * 22;
+            guiGraphics.fill(bx + 3, by + 3, bx + (inputWidth / 4 - 5), by + 15, color);
+            if (color == selectedColor) {
+                guiGraphics.renderOutline(bx + 1, by + 1, inputWidth / 4 - 4, 16, 0xFFFFFFFF);
+            }
+        }
+
+        guiGraphics.drawString(this.font, "Trusted (" + trustedPlayers.size() + ")", rightStart, 180, 0xFFAAAAAA);
+        
+        int ty = 210;
+        for (int i = 0; i < Math.min(trustedPlayers.size(), 2); i++) {
+            UUID id = trustedPlayers.get(i);
+            String name = "Unknown";
+            if (minecraft.getConnection() != null) {
+                net.minecraft.client.multiplayer.PlayerInfo info = minecraft.getConnection().getPlayerInfo(id);
+                if (info != null) name = info.getProfile().getName();
+            }
+            guiGraphics.drawString(this.font, "• " + name, rightStart + 5, ty, 0xFFCCCCCC);
+            ty += 11;
+        }
+        if (trustedPlayers.size() > 2) {
+            guiGraphics.drawString(this.font, "...+" + (trustedPlayers.size() - 2) + " more", rightStart + 5, ty, 0xFF888888);
+        }
 
         super.render(guiGraphics, mouseX, mouseY, partialTick);
-        
-        guiGraphics.drawCenteredString(this.font, "Configuring: " + claim.displayName, this.width / 2, 20, 0xFFFFFFFF);
+        guiGraphics.drawCenteredString(this.font, "Config: " + claim.displayName, this.width / 2, 15, 0xFFFFFFFF);
     }
 
     @Override
