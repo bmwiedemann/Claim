@@ -36,6 +36,7 @@ public class ClaimManager
         claims.add(new ClaimData(nextClaimId++, displayName, ownerUUID, pos1, pos2));
         save(level);
         
+        // Sync to all players
         for (ServerPlayer player : level.getServer().getPlayerList().getPlayers())
         {
             Claim.syncClaims(player);
@@ -53,35 +54,6 @@ public class ClaimManager
             }
         }
         return false;
-    }
-
-    public static boolean isAdjacentToOwnedClaim(UUID playerUUID, BlockPos pos1, BlockPos pos2) {
-        List<ClaimData> playerClaims = claims.stream().filter(c -> c.ownerUUID.equals(playerUUID)).toList();
-        if (playerClaims.isEmpty()) return true;
-
-        for (ClaimData claim : playerClaims) {
-            if (isAdjacent(pos1, pos2, claim.pos1, claim.pos2)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean isAdjacent(BlockPos a1, BlockPos a2, BlockPos b1, BlockPos b2) {
-        int aMinX = Math.min(a1.getX(), a2.getX());
-        int aMaxX = Math.max(a1.getX(), a2.getX());
-        int aMinZ = Math.min(a1.getZ(), a2.getZ());
-        int aMaxZ = Math.max(a1.getZ(), a2.getZ());
-
-        int bMinX = Math.min(b1.getX(), b2.getX());
-        int bMaxX = Math.max(b1.getX(), b2.getX());
-        int bMinZ = Math.min(b1.getZ(), b2.getZ());
-        int bMaxZ = Math.max(b1.getZ(), b2.getZ());
-
-        boolean xTouch = (aMinX <= bMaxX + 1 && aMaxX >= bMinX - 1);
-        boolean zTouch = (aMinZ <= bMaxZ + 1 && aMaxZ >= bMinZ - 1);
-        
-        return xTouch && zTouch;
     }
 
     private static boolean intersects(BlockPos a1, BlockPos a2, BlockPos b1, BlockPos b2)

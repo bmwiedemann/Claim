@@ -2,121 +2,111 @@ package net.yigitguven.claim.core;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.SolidBucketItem;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
-import net.neoforged.neoforge.event.level.BlockEvent.FarmlandTrampleEvent;
 import net.yigitguven.claim.Claim;
 import net.yigitguven.claim.config.ModConfig;
 
-import java.util.Comparator;
-import java.util.List;
+import java.util.UUID;
 
 @EventBusSubscriber(modid = Claim.MODID)
-public class ProtectionHandler
-{
+public class ProtectionHandler {
+
     @SubscribeEvent
-    public static void onBlockBreak(BlockEvent.BreakEvent event)
-    {
-        if (shouldCancel(event.getPlayer(), event.getPos(), true))
-        {
+    public static void onBlockBreak(BlockEvent.BreakEvent event) {
+        if (isProtected(event.getPlayer(), event.getPos(), true)) {
             event.setCanceled(true);
         }
     }
 
     @SubscribeEvent
-    public static void onBlockPlace(BlockEvent.EntityPlaceEvent event)
-    {
-        if (event.getEntity() instanceof Player player)
-        {
-            if (shouldCancel(player, event.getPos(), true))
-            {
+    public static void onBlockPlace(BlockEvent.EntityPlaceEvent event) {
+        if (event.getEntity() instanceof Player player) {
+            if (isProtected(player, event.getPos(), true)) {
                 event.setCanceled(true);
             }
         }
     }
 
     @SubscribeEvent
-    public static void onFarmlandTrample(FarmlandTrampleEvent event)
-    {
-        if (event.getEntity() instanceof Player player)
-        {
-            if (shouldCancel(player, event.getPos(), true))
-            {
-                event.setCanceled(true);
-            }
+    public static void onInteract(PlayerInteractEvent.RightClickBlock event) {
+        Player player = event.getEntity();
+        BlockPos pos = event.getPos();
+        
+        // 1. Check for standard block interaction (Chests, Doors, etc.)
+        if (isProtected(player, pos, false)) {
+            event.setCanceled(true);
+            return;
         }
-    }
 
-    @SubscribeEvent
-    public static void onBlockInteract(PlayerInteractEvent.RightClickBlock event)
-    {
+        // 2. Check for bucket usage (Filling or Emptying)
         ItemStack stack = event.getItemStack();
-        boolean isBucket = stack.getItem() instanceof BucketItem;
-        
-        // For interactions (chests, doors) and bucket usage
-        if (shouldCancel(event.getEntity(), event.getPos(), isBucket))
-        {
-            event.setCanceled(true);
+        if (stack.getItem() instanceof BucketItem || stack.getItem() instanceof SolidBucketItem) {
+            BlockPos targetPos = pos.relative(event.getFace());
+            if (isProtected(player, targetPos, true)) {
+                event.setCanceled(true);
+            }
         }
     }
 
-    private static boolean shouldCancel(Player player, BlockPos pos, boolean isModification)
-    {
-        if (player.level().isClientSide) return false;
+    @SubscribeEvent
+    public static void onFarmlandTrample(BlockEvent.FarmlandTrampleEvent event) {
+        if (event.getEntity() instanceof Player player) {
+            if (isProtected(player, event.getPos(), true)) {
+                event.setCanceled(true);
+            }
+        }
+    }
+
+    private static boolean isProtected(Player player, BlockPos pos, boolean isModification) {
+        if (player.getCommandSenderWorld().isClientSide) return false;
         
-        // OP Bypass
-        if (ModConfig.OP_BYPASS.get() && player.hasPermissions(2))
-        {
-            // Dev testing override
-            if (player.getDisplayName().getString().equals("Dev")) return true;
+        // Bypass Rules:
+        // 1. Creative mode players are NO LONGER bypassing (for testing).
+        // 2. Operators (OP) bypass ONLY if 'opBypass' is enabled in the config.
+        // 3. Players named "Dev" NEVER bypass (to allow testing OP/Admin logic).
+        
+        boolean isOp = player.hasPermissions(2);
+        boolean isDev = player.getName().getString().equals("Dev");
+        boolean opBypassConfig = ModConfig.OP_BYPASS.get();
+        
+        if (isOp && opBypassConfig && !isDev) {
             return false;
         }
 
         ClaimData claim = ClaimManager.getClaimAt(pos);
         if (claim == null) return false;
 
-        // If player is owner or trusted, always allow
-        if (claim.ownerUUID.equals(player.getUUID()) || claim.trustedPlayers.contains(player.getUUID()))
-        {
+        UUID playerUUID = player.getUUID();
+        if (claim.ownerUUID.equals(playerUUID) || claim.trustedPlayers.contains(playerUUID)) {
             return false;
         }
 
-        // Home Claim Logic for War Servers
-        if (ModConfig.PROTECT_ONLY_HOME_CLAIM.get()) {
-            if (!isHomeClaim(claim)) {
-                // If it's NOT the home claim, it can be "invaded" (modified/interacted) by anyone
-                return false;
-            }
-        }
-
-        // If it's a modification (break/place/bucket), it's always restricted to owner/trusted
-        if (isModification)
-        {
-            player.displayClientMessage(Component.literal("§cThis area belongs to " + claim.displayName), true);
+        // Modifications (Break, Place, Buckets, Trample) are ALWAYS protected
+        if (isModification) {
+            notifyPlayer(player);
             return true;
         }
 
-        // For interactions, check PUBLIC/PRIVATE mode
-        if (claim.permissionMode == ClaimData.PermissionMode.PRIVATE)
-        {
-            player.displayClientMessage(Component.literal("§cThis area is private!"), true);
+        // Interactions (Chests, Doors, etc.) depend on permission mode
+        if (claim.permissionMode == ClaimData.PermissionMode.PRIVATE) {
+            notifyPlayer(player);
             return true;
         }
 
         return false;
     }
 
-    private static boolean isHomeClaim(ClaimData claim) {
-        List<ClaimData> allClaims = ClaimManager.getClaims();
-        return allClaims.stream()
-                .filter(c -> c.ownerUUID.equals(claim.ownerUUID))
-                .min(Comparator.comparingLong(c -> c.createdAt))
-                .map(home -> home.claimId == claim.claimId)
-                .orElse(false);
+    private static void notifyPlayer(Player player) {
+        if (player instanceof ServerPlayer serverPlayer) {
+            serverPlayer.displayClientMessage(Component.literal("§cThis area is claimed!"), true);
+        }
     }
 }

@@ -5,7 +5,6 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.yigitguven.claim.commands.ClaimCommand;
 import net.yigitguven.claim.core.ClaimManager;
-import net.yigitguven.claim.core.PlayerDataManager;
 import net.yigitguven.claim.network.ClaimSyncPayload;
 import net.yigitguven.claim.network.PayloadHandler;
 import com.mojang.logging.LogUtils;
@@ -14,7 +13,6 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
@@ -72,38 +70,21 @@ public class Claim
 
     private void clientSetup(final FMLClientSetupEvent event)
     {
+        // Integration is handled via Mixin
     }
 
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event)
     {
-        LOGGER.info("Claim mod server starting, loading data...");
+        LOGGER.info("Claim mod server starting, loading claims...");
         ClaimManager.load(event.getServer().overworld());
-        PlayerDataManager.load(event.getServer().overworld());
     }
 
     @SubscribeEvent
     public void onServerStopping(ServerStoppingEvent event)
     {
-        LOGGER.info("Claim mod server stopping, saving data...");
+        LOGGER.info("Claim mod server stopping, saving claims...");
         ClaimManager.save(event.getServer().overworld());
-        PlayerDataManager.save(event.getServer().overworld());
-    }
-
-    @SubscribeEvent
-    public void onServerTick(ServerTickEvent.Post event) {
-        // Every 1 second
-        if (event.getServer().getTickCount() % 20 == 0) {
-            for (ServerPlayer player : event.getServer().getPlayerList().getPlayers()) {
-                PlayerDataManager.updatePlaytime(player, 1);
-            }
-        }
-        
-        // Auto-save every 5 minutes
-        if (event.getServer().getTickCount() % 6000 == 0) {
-            PlayerDataManager.save(event.getServer().overworld());
-            ClaimManager.save(event.getServer().overworld());
-        }
     }
 
     @SubscribeEvent
@@ -122,7 +103,6 @@ public class Claim
 
     public static void syncClaims(ServerPlayer player)
     {
-        int blocks = PlayerDataManager.getAvailableBlocks(player.getUUID());
-        player.connection.send(new ClaimSyncPayload(ClaimManager.getClaims(), blocks));
+        player.connection.send(new ClaimSyncPayload(ClaimManager.getClaims()));
     }
 }
