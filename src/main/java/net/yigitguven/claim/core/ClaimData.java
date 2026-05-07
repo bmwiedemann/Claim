@@ -44,6 +44,14 @@ public class ClaimData
         this.description = description;
     }
 
+    public long getBlockCount()
+    {
+        long x = Math.abs(pos1.getX() - pos2.getX()) + 1;
+        long y = Math.abs(pos1.getY() - pos2.getY()) + 1;
+        long z = Math.abs(pos1.getZ() - pos2.getZ()) + 1;
+        return x * y * z;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

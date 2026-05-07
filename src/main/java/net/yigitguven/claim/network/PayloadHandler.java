@@ -21,6 +21,36 @@ public class PayloadHandler
         context.enqueueWork(() -> {
             if (context.player() instanceof net.minecraft.server.level.ServerPlayer player)
             {
+                int maxClaims = net.yigitguven.claim.config.ModConfig.MAX_CLAIMS.get();
+                long maxBlocksPerClaim = net.yigitguven.claim.config.ModConfig.MAX_BLOCKS_PER_CLAIM.get();
+                long maxTotalBlocks = net.yigitguven.claim.config.ModConfig.MAX_TOTAL_BLOCKS.get();
+
+                boolean isOp = player.hasPermissions(2);
+                boolean bypass = isOp && net.yigitguven.claim.config.ModConfig.OP_BYPASS.get();
+
+                if (!bypass)
+                {
+                    if (maxClaims != -1 && net.yigitguven.claim.core.ClaimManager.getClaimCount(player.getUUID()) >= maxClaims)
+                    {
+                        player.displayClientMessage(net.minecraft.network.chat.Component.literal("You have reached the maximum number of claims (" + maxClaims + ")!"), false);
+                        return;
+                    }
+
+                    long newClaimBlocks = net.yigitguven.claim.core.ClaimManager.calculateVolume(player.serverLevel(), payload.pos1(), payload.pos2());
+                    if (maxBlocksPerClaim != -1 && newClaimBlocks > maxBlocksPerClaim)
+                    {
+                        player.displayClientMessage(net.minecraft.network.chat.Component.literal("This area is too large! Max blocks per claim: " + maxBlocksPerClaim + " (Current: " + newClaimBlocks + ")"), false);
+                        return;
+                    }
+
+                    long currentTotal = net.yigitguven.claim.core.ClaimManager.getTotalClaimedBlocks(player.getUUID());
+                    if (maxTotalBlocks != -1 && (currentTotal + newClaimBlocks) > maxTotalBlocks)
+                    {
+                        player.displayClientMessage(net.minecraft.network.chat.Component.literal("You don't have enough claim blocks left! Total limit: " + maxTotalBlocks + " (Current: " + currentTotal + ", Needed: " + newClaimBlocks + ")"), false);
+                        return;
+                    }
+                }
+
                 System.out.println("[Claim] Adding claim for " + player.getName().getString() + " at " + payload.pos1() + " to " + payload.pos2());
                 net.yigitguven.claim.core.ClaimManager.addClaim(player.serverLevel(), player.getName().getString() + "'s Claim", player.getUUID(), payload.pos1(), payload.pos2());
             }

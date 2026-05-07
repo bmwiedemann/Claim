@@ -8,13 +8,77 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.yigitguven.claim.Claim;
+import net.yigitguven.claim.core.ClaimData;
+import net.yigitguven.claim.core.ClaimManager;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 @EventBusSubscriber(modid = Claim.MODID)
 public class PlayerEvents
 {
+    private static final Map<UUID, Integer> lastPlayerClaim = new HashMap<>();
+
+    @SubscribeEvent
+    public static void onPlayerTick(PlayerTickEvent.Post event)
+    {
+        if (event.getEntity().level().isClientSide) return;
+
+        Player player = event.getEntity();
+        BlockPos pos = player.blockPosition();
+        ClaimData currentClaim = ClaimManager.getClaimAt(pos);
+        int currentClaimId = currentClaim != null ? currentClaim.claimId : -1;
+
+        Integer lastId = lastPlayerClaim.get(player.getUUID());
+        if (lastId == null) lastId = -1;
+
+        if (currentClaimId != lastId)
+        {
+            handleClaimChange(player, lastId, currentClaim);
+            lastPlayerClaim.put(player.getUUID(), currentClaimId);
+        }
+    }
+
+    private static void handleClaimChange(Player player, int lastId, ClaimData currentClaim)
+    {
+        if (currentClaim != null)
+        {
+            // Entered a claim
+            String message = "§aEntering: §f" + currentClaim.displayName;
+            sendIndicator(player, message, true, currentClaim.displayName);
+        }
+        else
+        {
+            // Left a claim
+            String message = "§cLeaving claim area";
+            sendIndicator(player, message, false, "");
+        }
+    }
+
+    private static void sendIndicator(Player player, String message, boolean entering, String claimName)
+    {
+        if (ModConfig.SHOW_CLAIM_ACTION_BAR.get())
+        {
+            player.displayClientMessage(Component.literal(message), true);
+        }
+
+        if (ModConfig.SHOW_CLAIM_CHAT.get())
+        {
+            player.displayClientMessage(Component.literal(message), false);
+        }
+
+        if (entering && ModConfig.SHOW_CLAIM_TITLE.get() && player instanceof net.minecraft.server.level.ServerPlayer serverPlayer)
+        {
+            serverPlayer.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(Component.literal("§a" + claimName)));
+            serverPlayer.connection.send(new net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket(Component.literal("§7Claimed Area")));
+        }
+    }
+
     @SubscribeEvent
     public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event)
     {

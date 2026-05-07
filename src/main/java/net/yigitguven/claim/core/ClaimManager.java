@@ -28,6 +28,10 @@ public class ClaimManager
 
     public static boolean addClaim(ServerLevel level, String displayName, UUID ownerUUID, BlockPos pos1, BlockPos pos2)
     {
+        BlockPos[] normalized = getNormalizedPositions(level, pos1, pos2);
+        pos1 = normalized[0];
+        pos2 = normalized[1];
+
         if (isAreaClaimed(pos1, pos2))
         {
             return false;
@@ -64,6 +68,32 @@ public class ClaimManager
                Math.max(a1.getY(), a2.getY()) >= Math.min(b1.getY(), b2.getY()) &&
                Math.min(a1.getZ(), a2.getZ()) <= Math.max(b1.getZ(), b2.getZ()) &&
                Math.max(a1.getZ(), a2.getZ()) >= Math.min(b1.getZ(), b2.getZ());
+    }
+
+    public static long calculateVolume(BlockPos p1, BlockPos p2)
+    {
+        long x = Math.abs(p1.getX() - p2.getX()) + 1;
+        long y = Math.abs(p1.getY() - p2.getY()) + 1;
+        long z = Math.abs(p1.getZ() - p2.getZ()) + 1;
+        return x * y * z;
+    }
+
+    public static long calculateVolume(ServerLevel level, BlockPos p1, BlockPos p2)
+    {
+        BlockPos[] normalized = getNormalizedPositions(level, p1, p2);
+        return calculateVolume(normalized[0], normalized[1]);
+    }
+
+    public static BlockPos[] getNormalizedPositions(ServerLevel level, BlockPos p1, BlockPos p2)
+    {
+        if (net.yigitguven.claim.config.ModConfig.CLAIM_ALL_Y.get())
+        {
+            return new BlockPos[]{
+                new BlockPos(p1.getX(), level.getMinBuildHeight(), p1.getZ()),
+                new BlockPos(p2.getX(), level.getMaxBuildHeight(), p2.getZ())
+            };
+        }
+        return new BlockPos[]{p1, p2};
     }
 
     public static void removeClaims(ServerLevel level, List<Integer> claimIds, UUID playerUUID)
@@ -120,6 +150,19 @@ public class ClaimManager
     public static List<ClaimData> getClaims()
     {
         return new ArrayList<>(claims);
+    }
+
+    public static int getClaimCount(UUID playerUUID)
+    {
+        return (int) claims.stream().filter(claim -> claim.ownerUUID.equals(playerUUID)).count();
+    }
+
+    public static long getTotalClaimedBlocks(UUID playerUUID)
+    {
+        return claims.stream()
+                .filter(claim -> claim.ownerUUID.equals(playerUUID))
+                .mapToLong(ClaimData::getBlockCount)
+                .sum();
     }
 
     public static void load(ServerLevel level)
