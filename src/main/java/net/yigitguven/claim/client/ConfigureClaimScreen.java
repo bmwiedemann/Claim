@@ -7,6 +7,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.network.PacketDistributor;
+import net.yigitguven.claim.config.ModConfig;
 import net.yigitguven.claim.core.ClaimData;
 import net.yigitguven.claim.core.ClientClaimManager;
 import net.yigitguven.claim.network.UpdateClaimMetadataPayload;
@@ -62,35 +63,43 @@ public class ConfigureClaimScreen extends Screen
         // Name field
         this.nameBox = new EditBox(this.font, rightStart, 38, inputWidth, 18, Component.literal("Name"));
         this.nameBox.setValue(claim.displayName);
+        this.nameBox.setEditable(!ModConfig.LOCK_CLAIM_NAME.get());
         this.addRenderableWidget(this.nameBox);
 
         // Description field
         this.descBox = new EditBox(this.font, rightStart, 72, inputWidth, 18, Component.literal("Description"));
         this.descBox.setValue(claim.description != null ? claim.description : "");
+        this.descBox.setEditable(!ModConfig.LOCK_CLAIM_DESCRIPTION.get());
         this.addRenderableWidget(this.descBox);
 
         // Permission Toggle
-        this.addRenderableWidget(Button.builder(Component.literal("Access: " + permissionMode.name()), (btn) -> {
+        Button permButton = Button.builder(Component.literal("Access: " + permissionMode.name()), (btn) -> {
             permissionMode = (permissionMode == ClaimData.PermissionMode.PRIVATE) ? ClaimData.PermissionMode.PUBLIC : ClaimData.PermissionMode.PRIVATE;
             btn.setMessage(Component.literal("Access: " + permissionMode.name()));
-        }).bounds(rightStart, 102, inputWidth, 18).build());
+        }).bounds(rightStart, 102, inputWidth, 18).build();
+        permButton.active = !ModConfig.LOCK_CLAIM_PERMISSIONS.get();
+        this.addRenderableWidget(permButton);
 
         // Color Selection
         for (int i = 0; i < PRESET_VALUES.length; i++) {
             final int actualValue = PRESET_VALUES[i];
             int bx = rightStart + (i % 4) * (inputWidth / 4 + 2);
             int by = 135 + (i / 4) * 22;
-            this.addRenderableWidget(Button.builder(Component.literal(""), (btn) -> {
+            Button colorBtn = Button.builder(Component.literal(""), (btn) -> {
                 selectedColor = actualValue;
                 claim.color = actualValue; // Live update preview
-            }).bounds(bx, by, inputWidth / 4 - 2, 18).build());
+            }).bounds(bx, by, inputWidth / 4 - 2, 18).build();
+            colorBtn.active = !ModConfig.LOCK_CLAIM_COLOR.get();
+            this.addRenderableWidget(colorBtn);
         }
 
         // Trusted Players Management
         int trustedY = 190;
-        this.addRenderableWidget(Button.builder(Component.literal("Add Player"), (btn) -> {
+        Button trustBtn = Button.builder(Component.literal("Add Player"), (btn) -> {
             openOnlinePlayerSelector();
-        }).bounds(rightStart, trustedY, inputWidth, 18).build());
+        }).bounds(rightStart, trustedY, inputWidth, 18).build();
+        trustBtn.active = !ModConfig.LOCK_CLAIM_TRUSTED.get();
+        this.addRenderableWidget(trustBtn);
 
         // Save / Cancel at bottom
         int buttonY = this.height - 30;

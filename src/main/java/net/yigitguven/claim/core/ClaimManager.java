@@ -37,7 +37,16 @@ public class ClaimManager
             return false;
         }
 
-        claims.add(new ClaimData(nextClaimId++, displayName, ownerUUID, pos1, pos2));
+        String ownerName = "Unknown";
+        ServerPlayer player = level.getServer().getPlayerList().getPlayer(ownerUUID);
+        if (player != null) ownerName = player.getScoreboardName();
+
+        String name = net.yigitguven.claim.config.ModConfig.DEFAULT_CLAIM_NAME.get().replace("{player}", ownerName);
+        String desc = net.yigitguven.claim.config.ModConfig.DEFAULT_CLAIM_DESCRIPTION.get();
+        ClaimData.PermissionMode mode = net.yigitguven.claim.config.ModConfig.DEFAULT_CLAIM_PERMISSIONS.get();
+        int color = net.yigitguven.claim.config.ModConfig.DEFAULT_CLAIM_COLOR.get();
+
+        claims.add(new ClaimData(nextClaimId++, name, ownerUUID, pos1, pos2, new ArrayList<>(), mode, System.currentTimeMillis(), color, desc));
         save(level);
         
         // Sync to all players

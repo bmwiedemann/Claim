@@ -79,9 +79,33 @@ public class PayloadHandler
         context.enqueueWork(() -> {
             if (context.player() instanceof net.minecraft.server.level.ServerPlayer player)
             {
+                boolean isOp = player.hasPermissions(2);
+                boolean bypass = isOp && net.yigitguven.claim.config.ModConfig.OP_BYPASS.get();
+                
+                String name = payload.name();
+                String description = payload.description();
+                net.yigitguven.claim.core.ClaimData.PermissionMode mode = payload.mode();
+                int color = payload.color();
+                java.util.List<java.util.UUID> trustedPlayers = payload.trustedPlayers();
+
+                // If locked and not bypass, use current values from the server instead of payload
+                // We need to find the claim first
+                net.yigitguven.claim.core.ClaimData existing = net.yigitguven.claim.core.ClaimManager.getClaims().stream()
+                        .filter(c -> c.claimId == payload.claimId())
+                        .findFirst().orElse(null);
+
+                if (existing != null && !bypass)
+                {
+                    if (net.yigitguven.claim.config.ModConfig.LOCK_CLAIM_NAME.get()) name = existing.displayName;
+                    if (net.yigitguven.claim.config.ModConfig.LOCK_CLAIM_DESCRIPTION.get()) description = existing.description;
+                    if (net.yigitguven.claim.config.ModConfig.LOCK_CLAIM_PERMISSIONS.get()) mode = existing.permissionMode;
+                    if (net.yigitguven.claim.config.ModConfig.LOCK_CLAIM_COLOR.get()) color = existing.color;
+                    if (net.yigitguven.claim.config.ModConfig.LOCK_CLAIM_TRUSTED.get()) trustedPlayers = existing.trustedPlayers;
+                }
+
                 net.yigitguven.claim.core.ClaimManager.updateClaimMetadata(player.serverLevel(), 
-                    payload.claimId(), payload.name(), payload.description(), 
-                    payload.mode(), payload.color(), payload.trustedPlayers(), player.getUUID());
+                    payload.claimId(), name, description, 
+                    mode, color, trustedPlayers, player.getUUID());
             }
         });
     }
