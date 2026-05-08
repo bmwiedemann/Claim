@@ -115,6 +115,30 @@ public class ClaimManager
         }
     }
 
+    public static boolean removeClaim(ServerLevel level, int claimId)
+    {
+        boolean removed = claims.removeIf(claim -> claim.claimId == claimId);
+        if (removed)
+        {
+            save(level);
+            for (ServerPlayer player : level.getServer().getPlayerList().getPlayers())
+            {
+                Claim.syncClaims(player);
+            }
+        }
+        return removed;
+    }
+
+    public static void clearPlayerClaims(ServerLevel level, UUID playerUUID)
+    {
+        claims.removeIf(claim -> claim.ownerUUID.equals(playerUUID));
+        save(level);
+        for (ServerPlayer player : level.getServer().getPlayerList().getPlayers())
+        {
+            Claim.syncClaims(player);
+        }
+    }
+
     public static void updateClaimMetadata(ServerLevel level, int claimId, String newName, String description, ClaimData.PermissionMode mode, int color, List<UUID> trustedPlayers, UUID ownerUUID)
     {
         for (ClaimData claim : claims)

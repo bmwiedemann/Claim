@@ -10,6 +10,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.yigitguven.claim.core.ClaimManager;
 import net.yigitguven.claim.core.SelectionManager;
 import net.yigitguven.claim.config.ModConfig;
+import net.yigitguven.claim.core.ClaimData;
+import net.minecraft.commands.arguments.EntityArgument;
 
 public class ClaimCommand
 {
@@ -123,6 +125,32 @@ public class ClaimCommand
                             ServerPlayer player = context.getSource().getPlayerOrException();
                             player.connection.send(new net.yigitguven.claim.network.OpenClaimListPayload());
                             return 1;
-                        })));
+                        }))
+                .then(Commands.literal("admin")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.literal("unclaim")
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    ClaimData claim = ClaimManager.getClaimAt(player.blockPosition());
+                                    if (claim != null)
+                                    {
+                                        ClaimManager.removeClaim(context.getSource().getLevel(), claim.claimId);
+                                        player.displayClientMessage(Component.literal("Admin: Claim removed at your position."), false);
+                                        return 1;
+                                    }
+                                    else
+                                    {
+                                        player.displayClientMessage(Component.literal("Admin: No claim found at your position."), false);
+                                        return 0;
+                                    }
+                                }))
+                        .then(Commands.literal("clear")
+                                .then(Commands.argument("player", EntityArgument.player())
+                                        .executes(context -> {
+                                            ServerPlayer target = EntityArgument.getPlayer(context, "player");
+                                            ClaimManager.clearPlayerClaims(context.getSource().getLevel(), target.getUUID());
+                                            context.getSource().sendSuccess(() -> Component.literal("Admin: Cleared all claims for " + target.getScoreboardName()), true);
+                                            return 1;
+                                        })))));
     }
 }
