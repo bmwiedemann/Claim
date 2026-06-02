@@ -14,10 +14,14 @@ import net.neoforged.neoforge.event.level.BlockEvent;
 import net.yigitguven.claim.Claim;
 import net.yigitguven.claim.config.ModConfig;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @EventBusSubscriber(modid = Claim.MODID)
 public class ProtectionHandler {
+    private static final Map<UUID, Long> lastDenyMessage = new HashMap<>();
+    private static final long DENY_MESSAGE_COOLDOWN_MS = 1000L;
 
     @SubscribeEvent
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
@@ -67,17 +71,11 @@ public class ProtectionHandler {
 
     private static boolean isProtected(Player player, BlockPos pos, boolean isModification) {
         if (player.getCommandSenderWorld().isClientSide) return false;
-        
-        // Bypass Rules:
-        // 1. Creative mode players are NO LONGER bypassing (for testing).
-        // 2. Operators (OP) bypass ONLY if 'opBypass' is enabled in the config.
-        // 3. Players named "Dev" NEVER bypass (to allow testing OP/Admin logic).
-        
+
         boolean isOp = player.hasPermissions(2);
-        boolean isDev = player.getName().getString().equals("Dev");
         boolean opBypassConfig = ModConfig.OP_BYPASS.get();
-        
-        if (isOp && opBypassConfig && !isDev) {
+
+        if (isOp && opBypassConfig) {
             return false;
         }
 
@@ -106,6 +104,13 @@ public class ProtectionHandler {
 
     private static void notifyPlayer(Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
+            long now = System.currentTimeMillis();
+            long last = lastDenyMessage.getOrDefault(serverPlayer.getUUID(), 0L);
+            if (now - last < DENY_MESSAGE_COOLDOWN_MS)
+            {
+                return;
+            }
+            lastDenyMessage.put(serverPlayer.getUUID(), now);
             serverPlayer.displayClientMessage(Component.translatable("message.claim.protection.denied"), true);
         }
     }

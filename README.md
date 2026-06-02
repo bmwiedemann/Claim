@@ -16,6 +16,8 @@
 
 - **Territory Security**: Prevents unauthorized block modifications (break/place), fluid manipulation (buckets), and crop trampling.
 - **Access Control**: Configurable permission modes (PRIVATE/PUBLIC) for block interactions such as chests, doors, and buttons.
+- **Economy-Friendly Permits**: Optional land permit requirement with configurable item, amount, and consumption behavior.
+- **Utility Items**: Craftable Claim Compass to open claim management quickly and Land Permit for progression-based claiming.
 - **3D Management Interface**: Visual dashboard for managing claims, featuring real-time 3D projector previews with terrain elevation support.
 - **Xaero's World Map Integration**: Automatic claim overlays on the world map with custom color support and foreign territory highlighting.
 - **Granular Trust System**: Manage trusted players per-claim via a dedicated UI.
@@ -27,6 +29,14 @@
 | :--- | :--- |
 | `/claim` | Claims the area selected with the selection tool. Supports relative coordinates. |
 | `/claim list` | Opens the graphical management dashboard for your claims. |
+| `/claim help` | Shows in-game help for main subcommands. |
+| `/claim info` | Shows claim ID and owner for the claim you are standing in. |
+| `/claim setvisit` | Sets visit spawn for the current claim. |
+| `/claim visit <claimId>` | Visits a claim by its ID. |
+| `/claim trustall <player>` | Trust a player across all your claims. |
+| `/claim untrustall <player>` | Remove trust across all your claims. |
+| `/claim admin givepermit [player] [amount]` | Gives Land Permit items for setup/testing. |
+| `/claim admin givecompass [player] [amount]` | Gives Claim Compass items for setup/testing. |
 
 ## Configuration
 
@@ -34,6 +44,10 @@ Configuration settings are located in `config/claim-common.toml`:
 
 - **selectionTool**: The item ID used for area selection (Default: `minecraft:wooden_shovel`).
 - **opBypass**: Toggles whether server operators bypass claim protections (Default: `true`).
+- **requireLandPermit**: Require permits to create claims.
+- **landPermitItem**: Item ID used as permit (Default: `claim:land_permit`).
+- **consumeLandPermitOnUse**: Consume permit item(s) on successful claim creation.
+- **visitOwnerOnly**: Restrict claim visiting to claim owners.
 
 ## Protection Logic
 
