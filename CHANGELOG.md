@@ -18,6 +18,9 @@
 - Localized new and updated command/event messages using translation keys in `en_us.json`.
 - Updated selection, visit, unclaim, and claim limit/permit feedback to use translatable chat/actionbar components.
 
+### Fixed
+- Fixed a `/claim visit` bug where teleporting to an unloaded claim could resolve to a very low Y level (for example around `-63`) and cause suffocation or unsafe spawns.
+
 ### Technical
 - Extended claim sync payload to include optional visit position data.
 - Added claim lookup and visit utility APIs in `ClaimManager` for command/event reuse.

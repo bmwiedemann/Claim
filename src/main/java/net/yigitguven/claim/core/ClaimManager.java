@@ -183,9 +183,13 @@ public class ClaimManager
 
     public static BlockPos getVisitPos(ServerLevel level, ClaimData claim)
     {
-        if (claim.visitPos != null && isInside(claim.visitPos, claim.pos1, claim.pos2) && isSafeStandingPos(level, claim.visitPos))
+        if (claim.visitPos != null)
         {
-            return claim.visitPos;
+            loadChunkForPos(level, claim.visitPos);
+            if (isInside(claim.visitPos, claim.pos1, claim.pos2) && isSafeStandingPos(level, claim.visitPos))
+            {
+                return claim.visitPos;
+            }
         }
         return findSafeClaimCenterPos(level, claim);
     }
@@ -280,6 +284,7 @@ public class ClaimManager
         int maxZ = Math.max(claim.pos1.getZ(), claim.pos2.getZ());
         int centerX = (minX + maxX) / 2;
         int centerZ = (minZ + maxZ) / 2;
+        loadChunkForPos(level, new BlockPos(centerX, level.getMinBuildHeight(), centerZ));
 
         int surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, centerX, centerZ) + 1;
         int minY = level.getMinBuildHeight() + 1;
@@ -305,11 +310,14 @@ public class ClaimManager
             }
         }
 
-        return new BlockPos(centerX, Math.max(minY, startY), centerZ);
+        int seaLevelFallback = Math.max(minY, Math.min(maxY, level.getSeaLevel() + 1));
+        return new BlockPos(centerX, Math.max(seaLevelFallback, startY), centerZ);
     }
 
     private static boolean isSafeStandingPos(ServerLevel level, BlockPos feetPos)
     {
+        loadChunkForPos(level, feetPos);
+
         int minY = level.getMinBuildHeight() + 1;
         int maxY = level.getMaxBuildHeight() - 2;
         if (feetPos.getY() < minY || feetPos.getY() > maxY)
@@ -337,6 +345,11 @@ public class ClaimManager
         return !level.getFluidState(feetPos).is(FluidTags.LAVA)
                 && !level.getFluidState(headPos).is(FluidTags.LAVA)
                 && !level.getFluidState(belowPos).is(FluidTags.LAVA);
+    }
+
+    private static void loadChunkForPos(ServerLevel level, BlockPos pos)
+    {
+        level.getChunk(pos.getX() >> 4, pos.getZ() >> 4);
     }
 
     public static void updateClaimMetadata(ServerLevel level, int claimId, String newName, String description, ClaimData.PermissionMode mode, int color, List<UUID> trustedPlayers, UUID ownerUUID)
