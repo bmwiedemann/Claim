@@ -51,6 +51,11 @@ public record ClaimSyncPayload(List<ClaimData> claims) implements CustomPacketPa
                     buf.writeLong(data.createdAt);
                     buf.writeInt(data.color);
                     buf.writeUtf(data.description);
+                    buf.writeBoolean(data.visitPos != null);
+                    if (data.visitPos != null)
+                    {
+                        buf.writeBlockPos(data.visitPos);
+                    }
                 },
                 (buf) -> {
                     int id = buf.readInt();
@@ -69,8 +74,13 @@ public record ClaimSyncPayload(List<ClaimData> claims) implements CustomPacketPa
                     long created = buf.readLong();
                     int color = buf.readInt();
                     String desc = buf.readUtf();
+                    BlockPos visitPos = null;
+                    if (buf.readBoolean())
+                    {
+                        visitPos = buf.readBlockPos();
+                    }
                     
-                    return new ClaimData(id, name, owner, p1, p2, trusted, mode, created, color, desc);
+                    return new ClaimData(id, name, owner, p1, p2, trusted, mode, created, color, desc, visitPos);
                 }
         );
     }

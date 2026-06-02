@@ -9,6 +9,10 @@ public class ModConfig
     public static final ModConfigSpec.ConfigValue<String> SELECTION_TOOL;
     public static final ModConfigSpec.BooleanValue OP_BYPASS;
     public static final ModConfigSpec.BooleanValue CLAIM_ALL_Y;
+        public static final ModConfigSpec.BooleanValue REQUIRE_LAND_PERMIT;
+        public static final ModConfigSpec.ConfigValue<String> LAND_PERMIT_ITEM;
+        public static final ModConfigSpec.IntValue LAND_PERMIT_AMOUNT;
+        public static final ModConfigSpec.BooleanValue CONSUME_LAND_PERMIT_ON_USE;
 
     public static final ModConfigSpec.IntValue MAX_CLAIMS;
     public static final ModConfigSpec.LongValue MAX_BLOCKS_PER_CLAIM;
@@ -17,6 +21,9 @@ public class ModConfig
     public static final ModConfigSpec.BooleanValue SHOW_CLAIM_ACTION_BAR;
     public static final ModConfigSpec.BooleanValue SHOW_CLAIM_TITLE;
     public static final ModConfigSpec.BooleanValue SHOW_CLAIM_CHAT;
+        public static final ModConfigSpec.BooleanValue SUPPRESS_SAME_OWNER_NAME_TRANSITIONS;
+
+        public static final ModConfigSpec.BooleanValue VISIT_OWNER_ONLY;
 
     public static final ModConfigSpec.ConfigValue<String> DEFAULT_CLAIM_NAME;
     public static final ModConfigSpec.ConfigValue<String> DEFAULT_CLAIM_DESCRIPTION;
@@ -42,6 +49,22 @@ public class ModConfig
         CLAIM_ALL_Y = BUILDER
                 .comment("Whether claims should automatically cover all Y levels (from bedrock to sky).")
                 .define("claimAllY", true);
+
+        REQUIRE_LAND_PERMIT = BUILDER
+                .comment("Whether players must have a permit item to create claims.")
+                .define("requireLandPermit", false);
+
+        LAND_PERMIT_ITEM = BUILDER
+                .comment("Permit item id used for claim creation when requireLandPermit is enabled.")
+                .define("landPermitItem", "minecraft:paper");
+
+        LAND_PERMIT_AMOUNT = BUILDER
+                .comment("How many permit items are required per claim.")
+                .defineInRange("landPermitAmount", 1, 1, Integer.MAX_VALUE);
+
+        CONSUME_LAND_PERMIT_ON_USE = BUILDER
+                .comment("Whether permit items are consumed when a claim is successfully created.")
+                .define("consumeLandPermitOnUse", false);
         BUILDER.pop();
 
         BUILDER.push("Limits");
@@ -70,6 +93,16 @@ public class ModConfig
         SHOW_CLAIM_CHAT = BUILDER
                 .comment("Show a message in chat when entering/leaving a claim.")
                 .define("showClaimChat", false);
+
+        SUPPRESS_SAME_OWNER_NAME_TRANSITIONS = BUILDER
+                .comment("Suppress enter/leave indicators when moving between adjacent claims with the same owner and name.")
+                .define("suppressSameOwnerNameTransitions", true);
+        BUILDER.pop();
+
+        BUILDER.push("Visit");
+        VISIT_OWNER_ONLY = BUILDER
+                .comment("Allow only claim owners to use /claim visit on their claims.")
+                .define("visitOwnerOnly", false);
         BUILDER.pop();
 
         BUILDER.push("Defaults");
@@ -114,5 +147,4 @@ public class ModConfig
     }
 
     public static final ModConfigSpec SPEC = BUILDER.build();
-}
 }

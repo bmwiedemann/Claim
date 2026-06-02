@@ -1,6 +1,7 @@
 package net.yigitguven.claim.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
@@ -35,40 +36,50 @@ public class ClaimCommand
                         {
                             if (maxClaims != -1 && ClaimManager.getClaimCount(player.getUUID()) >= maxClaims)
                             {
-                                player.displayClientMessage(Component.literal("You have reached the maximum number of claims (" + maxClaims + ")!"), false);
+                                player.displayClientMessage(Component.translatable("message.claim.max_claims", maxClaims), false);
                                 return 0;
                             }
 
                             long newClaimBlocks = ClaimManager.calculateVolume(context.getSource().getLevel(), selection.pos1, selection.pos2);
                             if (maxBlocksPerClaim != -1 && newClaimBlocks > maxBlocksPerClaim)
                             {
-                                player.displayClientMessage(Component.literal("This area is too large! Max blocks per claim: " + maxBlocksPerClaim + " (Current: " + newClaimBlocks + ")"), false);
+                                player.displayClientMessage(Component.translatable("message.claim.max_blocks_per_claim", maxBlocksPerClaim, newClaimBlocks), false);
                                 return 0;
                             }
 
                             long currentTotal = ClaimManager.getTotalClaimedBlocks(player.getUUID());
                             if (maxTotalBlocks != -1 && (currentTotal + newClaimBlocks) > maxTotalBlocks)
                             {
-                                player.displayClientMessage(Component.literal("You don't have enough claim blocks left! Total limit: " + maxTotalBlocks + " (Current: " + currentTotal + ", Needed: " + newClaimBlocks + ")"), false);
+                                player.displayClientMessage(Component.translatable("message.claim.max_total_blocks", maxTotalBlocks, currentTotal, newClaimBlocks), false);
+                                return 0;
+                            }
+
+                            if (!ClaimManager.hasRequiredLandPermit(player))
+                            {
+                                player.displayClientMessage(Component.translatable("message.claim.permit_required", ModConfig.LAND_PERMIT_AMOUNT.get(), ModConfig.LAND_PERMIT_ITEM.get()), false);
                                 return 0;
                             }
                         }
 
                         if (ClaimManager.addClaim(context.getSource().getLevel(), player.getScoreboardName() + "'s Claim", player.getUUID(), selection.pos1, selection.pos2))
                         {
-                            player.displayClientMessage(Component.literal("Area claimed successfully!"), false);
+                            if (!bypass)
+                            {
+                                ClaimManager.consumeLandPermit(player);
+                            }
+                            player.displayClientMessage(Component.translatable("message.claim.created"), false);
                             selection.reset();
                             return 1;
                         }
                         else
                         {
-                            player.displayClientMessage(Component.literal("This area (or part of it) is already claimed!"), false);
+                            player.displayClientMessage(Component.translatable("message.claim.already_claimed"), false);
                             return 0;
                         }
                     }
                     else
                     {
-                        player.displayClientMessage(Component.literal("Please select two positions first using a wooden shovel."), false);
+                        player.displayClientMessage(Component.translatable("message.claim.selection_required"), false);
                         return 0;
                     }
                 })
@@ -90,33 +101,43 @@ public class ClaimCommand
                     {
                         if (maxClaims != -1 && ClaimManager.getClaimCount(player.getUUID()) >= maxClaims)
                         {
-                            player.displayClientMessage(Component.literal("You have reached the maximum number of claims (" + maxClaims + ")!"), false);
+                            player.displayClientMessage(Component.translatable("message.claim.max_claims", maxClaims), false);
                             return 0;
                         }
 
                         long newClaimBlocks = ClaimManager.calculateVolume(context.getSource().getLevel(), pos1, pos2);
                         if (maxBlocksPerClaim != -1 && newClaimBlocks > maxBlocksPerClaim)
                         {
-                            player.displayClientMessage(Component.literal("This area is too large! Max blocks per claim: " + maxBlocksPerClaim + " (Current: " + newClaimBlocks + ")"), false);
+                            player.displayClientMessage(Component.translatable("message.claim.max_blocks_per_claim", maxBlocksPerClaim, newClaimBlocks), false);
                             return 0;
                         }
 
                         long currentTotal = ClaimManager.getTotalClaimedBlocks(player.getUUID());
                         if (maxTotalBlocks != -1 && (currentTotal + newClaimBlocks) > maxTotalBlocks)
                         {
-                            player.displayClientMessage(Component.literal("You don't have enough claim blocks left! Total limit: " + maxTotalBlocks + " (Current: " + currentTotal + ", Needed: " + newClaimBlocks + ")"), false);
+                            player.displayClientMessage(Component.translatable("message.claim.max_total_blocks", maxTotalBlocks, currentTotal, newClaimBlocks), false);
+                            return 0;
+                        }
+
+                        if (!ClaimManager.hasRequiredLandPermit(player))
+                        {
+                            player.displayClientMessage(Component.translatable("message.claim.permit_required", ModConfig.LAND_PERMIT_AMOUNT.get(), ModConfig.LAND_PERMIT_ITEM.get()), false);
                             return 0;
                         }
                     }
 
                     if (ClaimManager.addClaim(context.getSource().getLevel(), player.getScoreboardName() + "'s Claim", player.getUUID(), pos1, pos2))
                     {
-                        player.displayClientMessage(Component.literal("Area claimed successfully via command!"), false);
+                        if (!bypass)
+                        {
+                            ClaimManager.consumeLandPermit(player);
+                        }
+                        player.displayClientMessage(Component.translatable("message.claim.created_command"), false);
                         return 1;
                     }
                     else
                     {
-                        player.displayClientMessage(Component.literal("This area (or part of it) is already claimed!"), false);
+                        player.displayClientMessage(Component.translatable("message.claim.already_claimed"), false);
                         return 0;
                     }
                 })))
@@ -126,6 +147,113 @@ public class ClaimCommand
                             player.connection.send(new net.yigitguven.claim.network.OpenClaimListPayload());
                             return 1;
                         }))
+                .then(Commands.literal("info")
+                        .executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            ClaimData claim = ClaimManager.getClaimAt(player.blockPosition());
+                            if (claim == null)
+                            {
+                                player.displayClientMessage(Component.translatable("message.claim.info.none"), false);
+                                return 0;
+                            }
+
+                            String ownerName = player.server.getProfileCache().get(claim.ownerUUID)
+                                    .map(profile -> profile.getName())
+                                    .orElse(claim.ownerUUID.toString());
+                            player.displayClientMessage(Component.translatable("message.claim.info.details", claim.claimId, claim.displayName, ownerName), false);
+                            return 1;
+                        }))
+                .then(Commands.literal("unclaim")
+                        .executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            ClaimData claim = ClaimManager.getClaimAt(player.blockPosition());
+
+                            if (claim == null)
+                            {
+                                player.displayClientMessage(Component.translatable("message.claim.unclaim.none_here"), false);
+                                return 0;
+                            }
+
+                            boolean bypass = player.hasPermissions(2) && ModConfig.OP_BYPASS.get();
+                            if (!claim.ownerUUID.equals(player.getUUID()) && !bypass)
+                            {
+                                player.displayClientMessage(Component.translatable("message.claim.unclaim.owner_only"), false);
+                                return 0;
+                            }
+
+                            boolean removed = ClaimManager.removeClaim(context.getSource().getLevel(), claim.claimId);
+                            if (removed)
+                            {
+                                player.displayClientMessage(Component.translatable("message.claim.unclaim.success"), false);
+                                return 1;
+                            }
+
+                            player.displayClientMessage(Component.translatable("message.claim.unclaim.failed"), false);
+                            return 0;
+                        }))
+                .then(Commands.literal("setvisit")
+                        .executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            ClaimData claim = ClaimManager.getClaimAt(player.blockPosition());
+
+                            if (claim == null)
+                            {
+                                player.displayClientMessage(Component.translatable("message.claim.setvisit.must_be_inside"), false);
+                                return 0;
+                            }
+
+                            boolean bypass = player.hasPermissions(2) && ModConfig.OP_BYPASS.get();
+                            if (!claim.ownerUUID.equals(player.getUUID()) && !bypass)
+                            {
+                                player.displayClientMessage(Component.translatable("message.claim.setvisit.owner_only"), false);
+                                return 0;
+                            }
+
+                            BlockPos visitPos = player.blockPosition();
+                            if (ClaimManager.setVisitPos(context.getSource().getLevel(), claim.claimId, player.getUUID(), visitPos, bypass))
+                            {
+                                player.displayClientMessage(Component.translatable("message.claim.setvisit.updated", claim.claimId), false);
+                                return 1;
+                            }
+
+                            player.displayClientMessage(Component.translatable("message.claim.setvisit.failed"), false);
+                            return 0;
+                        }))
+                .then(Commands.literal("visit")
+                        .then(Commands.argument("claimId", IntegerArgumentType.integer(0))
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    int claimId = IntegerArgumentType.getInteger(context, "claimId");
+                                    ClaimData claim = ClaimManager.getClaimById(claimId);
+
+                                    if (claim == null)
+                                    {
+                                        player.displayClientMessage(Component.translatable("message.claim.visit.not_found", claimId), false);
+                                        return 0;
+                                    }
+
+                                    boolean bypass = player.hasPermissions(2) && ModConfig.OP_BYPASS.get();
+                                    if (ModConfig.VISIT_OWNER_ONLY.get() && !claim.ownerUUID.equals(player.getUUID()) && !bypass)
+                                    {
+                                        player.displayClientMessage(Component.translatable("message.claim.visit.owner_only"), false);
+                                        return 0;
+                                    }
+
+                                    boolean canVisit = bypass
+                                            || claim.ownerUUID.equals(player.getUUID())
+                                            || claim.trustedPlayers.contains(player.getUUID())
+                                            || claim.permissionMode == ClaimData.PermissionMode.PUBLIC;
+                                    if (!canVisit)
+                                    {
+                                        player.displayClientMessage(Component.translatable("message.claim.visit.no_permission"), false);
+                                        return 0;
+                                    }
+
+                                    BlockPos target = ClaimManager.getVisitPos(context.getSource().getLevel(), claim);
+                                    player.teleportTo(context.getSource().getLevel(), target.getX() + 0.5D, target.getY(), target.getZ() + 0.5D, player.getYRot(), player.getXRot());
+                                    player.displayClientMessage(Component.translatable("message.claim.visit.success", claim.claimId, claim.displayName), false);
+                                    return 1;
+                                })))
                 .then(Commands.literal("admin")
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.literal("unclaim")

@@ -19,6 +19,7 @@ public class ClaimData
     public long createdAt;
     public int color;
     public String description;
+    public BlockPos visitPos;
 
     public enum PermissionMode {
         PUBLIC, PRIVATE
@@ -26,11 +27,17 @@ public class ClaimData
 
     public ClaimData(int claimId, String displayName, UUID ownerUUID, BlockPos pos1, BlockPos pos2)
     {
-        this(claimId, displayName, ownerUUID, pos1, pos2, new ArrayList<>(), PermissionMode.PRIVATE, System.currentTimeMillis(), 0xFF55FF7D, "");
+        this(claimId, displayName, ownerUUID, pos1, pos2, new ArrayList<>(), PermissionMode.PRIVATE, System.currentTimeMillis(), 0xFF55FF7D, "", null);
     }
 
     public ClaimData(int claimId, String displayName, UUID ownerUUID, BlockPos pos1, BlockPos pos2, 
                     List<UUID> trustedPlayers, PermissionMode permissionMode, long createdAt, int color, String description)
+    {
+        this(claimId, displayName, ownerUUID, pos1, pos2, trustedPlayers, permissionMode, createdAt, color, description, null);
+    }
+
+    public ClaimData(int claimId, String displayName, UUID ownerUUID, BlockPos pos1, BlockPos pos2,
+                    List<UUID> trustedPlayers, PermissionMode permissionMode, long createdAt, int color, String description, BlockPos visitPos)
     {
         this.claimId = claimId;
         this.displayName = displayName;
@@ -42,6 +49,7 @@ public class ClaimData
         this.createdAt = createdAt;
         this.color = color;
         this.description = description;
+        this.visitPos = visitPos;
     }
 
     public long getBlockCount()

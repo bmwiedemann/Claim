@@ -5,8 +5,15 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.yigitguven.claim.Claim;
 import org.slf4j.Logger;
 
@@ -137,6 +144,199 @@ public class ClaimManager
         {
             Claim.syncClaims(player);
         }
+    }
+
+    public static ClaimData getClaimById(int claimId)
+    {
+        for (ClaimData claim : claims)
+        {
+            if (claim.claimId == claimId)
+            {
+                return claim;
+            }
+        }
+        return null;
+    }
+
+    public static boolean setVisitPos(ServerLevel level, int claimId, UUID playerUUID, BlockPos visitPos, boolean bypass)
+    {
+        for (ClaimData claim : claims)
+        {
+            if (claim.claimId == claimId)
+            {
+                if (!bypass && !claim.ownerUUID.equals(playerUUID))
+                {
+                    return false;
+                }
+
+                claim.visitPos = visitPos;
+                save(level);
+                for (ServerPlayer player : level.getServer().getPlayerList().getPlayers())
+                {
+                    Claim.syncClaims(player);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static BlockPos getVisitPos(ServerLevel level, ClaimData claim)
+    {
+        if (claim.visitPos != null && isInside(claim.visitPos, claim.pos1, claim.pos2) && isSafeStandingPos(level, claim.visitPos))
+        {
+            return claim.visitPos;
+        }
+        return findSafeClaimCenterPos(level, claim);
+    }
+
+    public static boolean hasRequiredLandPermit(ServerPlayer player)
+    {
+        if (!net.yigitguven.claim.config.ModConfig.REQUIRE_LAND_PERMIT.get())
+        {
+            return true;
+        }
+
+        Item permitItem = resolvePermitItem();
+        if (permitItem == null)
+        {
+            // Do not block claiming if the configured id is invalid; fail open with warning.
+            return true;
+        }
+
+        int required = net.yigitguven.claim.config.ModConfig.LAND_PERMIT_AMOUNT.get();
+        int total = 0;
+        for (ItemStack stack : player.getInventory().items)
+        {
+            if (stack.getItem() == permitItem)
+            {
+                total += stack.getCount();
+                if (total >= required)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static boolean consumeLandPermit(ServerPlayer player)
+    {
+        if (!net.yigitguven.claim.config.ModConfig.REQUIRE_LAND_PERMIT.get() || !net.yigitguven.claim.config.ModConfig.CONSUME_LAND_PERMIT_ON_USE.get())
+        {
+            return true;
+        }
+
+        Item permitItem = resolvePermitItem();
+        if (permitItem == null)
+        {
+            return true;
+        }
+
+        int required = net.yigitguven.claim.config.ModConfig.LAND_PERMIT_AMOUNT.get();
+        int remaining = required;
+        for (ItemStack stack : player.getInventory().items)
+        {
+            if (stack.getItem() != permitItem)
+            {
+                continue;
+            }
+
+            int toTake = Math.min(stack.getCount(), remaining);
+            stack.shrink(toTake);
+            remaining -= toTake;
+            if (remaining <= 0)
+            {
+                return true;
+            }
+        }
+
+        LOGGER.warn("Failed to consume enough permit items for player {}. Required={}, Remaining={}", player.getScoreboardName(), required, remaining);
+        return false;
+    }
+
+    private static Item resolvePermitItem()
+    {
+        String itemId = net.yigitguven.claim.config.ModConfig.LAND_PERMIT_ITEM.get();
+        ResourceLocation key = ResourceLocation.tryParse(itemId);
+        if (key == null)
+        {
+            LOGGER.warn("Invalid land permit item id in config: {}", itemId);
+            return null;
+        }
+        if (!BuiltInRegistries.ITEM.containsKey(key))
+        {
+            LOGGER.warn("Configured land permit item does not exist: {}", itemId);
+            return null;
+        }
+        return BuiltInRegistries.ITEM.get(key);
+    }
+
+    private static BlockPos findSafeClaimCenterPos(ServerLevel level, ClaimData claim)
+    {
+        int minX = Math.min(claim.pos1.getX(), claim.pos2.getX());
+        int maxX = Math.max(claim.pos1.getX(), claim.pos2.getX());
+        int minZ = Math.min(claim.pos1.getZ(), claim.pos2.getZ());
+        int maxZ = Math.max(claim.pos1.getZ(), claim.pos2.getZ());
+        int centerX = (minX + maxX) / 2;
+        int centerZ = (minZ + maxZ) / 2;
+
+        int surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, centerX, centerZ) + 1;
+        int minY = level.getMinBuildHeight() + 1;
+        int maxY = level.getMaxBuildHeight() - 2;
+
+        int startY = Math.max(minY, Math.min(maxY, surfaceY));
+
+        for (int y = startY; y <= maxY; y++)
+        {
+            BlockPos candidate = new BlockPos(centerX, y, centerZ);
+            if (isInside(candidate, claim.pos1, claim.pos2) && isSafeStandingPos(level, candidate))
+            {
+                return candidate;
+            }
+        }
+
+        for (int y = startY - 1; y >= minY; y--)
+        {
+            BlockPos candidate = new BlockPos(centerX, y, centerZ);
+            if (isInside(candidate, claim.pos1, claim.pos2) && isSafeStandingPos(level, candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return new BlockPos(centerX, Math.max(minY, startY), centerZ);
+    }
+
+    private static boolean isSafeStandingPos(ServerLevel level, BlockPos feetPos)
+    {
+        int minY = level.getMinBuildHeight() + 1;
+        int maxY = level.getMaxBuildHeight() - 2;
+        if (feetPos.getY() < minY || feetPos.getY() > maxY)
+        {
+            return false;
+        }
+
+        BlockPos headPos = feetPos.above();
+        BlockPos belowPos = feetPos.below();
+
+        BlockState feet = level.getBlockState(feetPos);
+        BlockState head = level.getBlockState(headPos);
+        BlockState below = level.getBlockState(belowPos);
+
+        if (!feet.getCollisionShape(level, feetPos).isEmpty() || !head.getCollisionShape(level, headPos).isEmpty())
+        {
+            return false;
+        }
+
+        if (below.isAir() || !below.blocksMotion())
+        {
+            return false;
+        }
+
+        return !level.getFluidState(feetPos).is(FluidTags.LAVA)
+                && !level.getFluidState(headPos).is(FluidTags.LAVA)
+                && !level.getFluidState(belowPos).is(FluidTags.LAVA);
     }
 
     public static void updateClaimMetadata(ServerLevel level, int claimId, String newName, String description, ClaimData.PermissionMode mode, int color, List<UUID> trustedPlayers, UUID ownerUUID)

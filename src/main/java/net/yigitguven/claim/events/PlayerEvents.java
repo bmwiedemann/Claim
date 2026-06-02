@@ -36,9 +36,21 @@ public class PlayerEvents
 
         Integer lastId = lastPlayerClaim.get(player.getUUID());
         if (lastId == null) lastId = -1;
+        ClaimData previousClaim = lastId == -1 ? null : ClaimManager.getClaimById(lastId);
 
         if (currentClaimId != lastId)
         {
+            if (ModConfig.SUPPRESS_SAME_OWNER_NAME_TRANSITIONS.get() && previousClaim != null && currentClaim != null)
+            {
+                boolean sameOwner = previousClaim.ownerUUID.equals(currentClaim.ownerUUID);
+                boolean sameName = previousClaim.displayName.equals(currentClaim.displayName);
+                if (sameOwner && sameName)
+                {
+                    lastPlayerClaim.put(player.getUUID(), currentClaimId);
+                    return;
+                }
+            }
+
             handleClaimChange(player, lastId, currentClaim);
             lastPlayerClaim.put(player.getUUID(), currentClaimId);
         }
@@ -48,28 +60,24 @@ public class PlayerEvents
     {
         if (currentClaim != null)
         {
-            // Entered a claim
-            String message = "§aEntering: §f" + currentClaim.displayName;
-            sendIndicator(player, message, true, currentClaim.displayName);
+            sendIndicator(player, Component.translatable("message.claim.indicator.entering", currentClaim.displayName), true, currentClaim.displayName);
         }
         else
         {
-            // Left a claim
-            String message = "§cLeaving claim area";
-            sendIndicator(player, message, false, "");
+            sendIndicator(player, Component.translatable("message.claim.indicator.leaving"), false, "");
         }
     }
 
-    private static void sendIndicator(Player player, String message, boolean entering, String claimName)
+    private static void sendIndicator(Player player, Component message, boolean entering, String claimName)
     {
         if (ModConfig.SHOW_CLAIM_ACTION_BAR.get())
         {
-            player.displayClientMessage(Component.literal(message), true);
+            player.displayClientMessage(message, true);
         }
 
         if (ModConfig.SHOW_CLAIM_CHAT.get())
         {
-            player.displayClientMessage(Component.literal(message), false);
+            player.displayClientMessage(message, false);
         }
 
         if (entering && ModConfig.SHOW_CLAIM_TITLE.get() && player instanceof net.minecraft.server.level.ServerPlayer serverPlayer)
@@ -97,25 +105,25 @@ public class PlayerEvents
             if (player.isShiftKeyDown())
             {
                 selection.reset();
-                player.displayClientMessage(Component.literal("Selection reset."), true);
+                player.displayClientMessage(Component.translatable("message.claim.selection.reset"), true);
             }
             else
             {
                 if (selection.pos1 == null)
                 {
                     selection.pos1 = pos;
-                    player.displayClientMessage(Component.literal("Position 1 set: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ()), true);
+                    player.displayClientMessage(Component.translatable("message.claim.selection.pos1", pos.getX(), pos.getY(), pos.getZ()), true);
                 }
                 else if (selection.pos2 == null)
                 {
                     selection.pos2 = pos;
-                    player.displayClientMessage(Component.literal("Position 2 set: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ()), true);
+                    player.displayClientMessage(Component.translatable("message.claim.selection.pos2", pos.getX(), pos.getY(), pos.getZ()), true);
                 }
                 else
                 {
                     selection.pos1 = pos;
                     selection.pos2 = null;
-                    player.displayClientMessage(Component.literal("Position 1 set (Selection restarted): " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ()), true);
+                    player.displayClientMessage(Component.translatable("message.claim.selection.restart", pos.getX(), pos.getY(), pos.getZ()), true);
                 }
             }
             event.setCanceled(true); 

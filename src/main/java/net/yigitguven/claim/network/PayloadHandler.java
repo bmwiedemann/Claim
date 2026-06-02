@@ -32,27 +32,36 @@ public class PayloadHandler
                 {
                     if (maxClaims != -1 && net.yigitguven.claim.core.ClaimManager.getClaimCount(player.getUUID()) >= maxClaims)
                     {
-                        player.displayClientMessage(net.minecraft.network.chat.Component.literal("You have reached the maximum number of claims (" + maxClaims + ")!"), false);
+                        player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.claim.max_claims", maxClaims), false);
                         return;
                     }
 
                     long newClaimBlocks = net.yigitguven.claim.core.ClaimManager.calculateVolume(player.serverLevel(), payload.pos1(), payload.pos2());
                     if (maxBlocksPerClaim != -1 && newClaimBlocks > maxBlocksPerClaim)
                     {
-                        player.displayClientMessage(net.minecraft.network.chat.Component.literal("This area is too large! Max blocks per claim: " + maxBlocksPerClaim + " (Current: " + newClaimBlocks + ")"), false);
+                        player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.claim.max_blocks_per_claim", maxBlocksPerClaim, newClaimBlocks), false);
                         return;
                     }
 
                     long currentTotal = net.yigitguven.claim.core.ClaimManager.getTotalClaimedBlocks(player.getUUID());
                     if (maxTotalBlocks != -1 && (currentTotal + newClaimBlocks) > maxTotalBlocks)
                     {
-                        player.displayClientMessage(net.minecraft.network.chat.Component.literal("You don't have enough claim blocks left! Total limit: " + maxTotalBlocks + " (Current: " + currentTotal + ", Needed: " + newClaimBlocks + ")"), false);
+                        player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.claim.max_total_blocks", maxTotalBlocks, currentTotal, newClaimBlocks), false);
+                        return;
+                    }
+
+                    if (!net.yigitguven.claim.core.ClaimManager.hasRequiredLandPermit(player))
+                    {
+                        player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.claim.permit_required", net.yigitguven.claim.config.ModConfig.LAND_PERMIT_AMOUNT.get(), net.yigitguven.claim.config.ModConfig.LAND_PERMIT_ITEM.get()), false);
                         return;
                     }
                 }
 
                 System.out.println("[Claim] Adding claim for " + player.getName().getString() + " at " + payload.pos1() + " to " + payload.pos2());
-                net.yigitguven.claim.core.ClaimManager.addClaim(player.serverLevel(), player.getName().getString() + "'s Claim", player.getUUID(), payload.pos1(), payload.pos2());
+                if (net.yigitguven.claim.core.ClaimManager.addClaim(player.serverLevel(), player.getName().getString() + "'s Claim", player.getUUID(), payload.pos1(), payload.pos2()) && !bypass)
+                {
+                    net.yigitguven.claim.core.ClaimManager.consumeLandPermit(player);
+                }
             }
         });
     }
