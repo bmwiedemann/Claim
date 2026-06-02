@@ -9,6 +9,14 @@
 	"message.claim.selection_required": "Please select two positions first using the configured selection tool.",
 	"message.claim.info.none": "You are not standing inside a claim.",
 	"message.claim.info.details": "Claim #%s | Name: %s | Owner: %s",
+	"message.claim.trustall.self": "You cannot trust yourself across all claims.",
+	"message.claim.trustall.locked": "Trusted players are locked by server config.",
+	"message.claim.trustall.none": "No claims were updated. You may not have any claims or that player is already trusted everywhere.",
+	"message.claim.trustall.success": "Trusted %s in %s claim(s).",
+	"message.claim.untrustall.none": "%s was not trusted in any of your claims.",
+	"message.claim.untrustall.success": "Removed %s from %s claim(s).",
+	"message.claim.admin.give.success": "Gave %s x %s.",
+	"message.claim.admin.give.missing_item": "Configured item does not exist: %s",
 	"message.claim.unclaim.none_here": "No claim found at your position.",
 	"message.claim.unclaim.owner_only": "You can only unclaim your own claim.",
 	"message.claim.unclaim.success": "Claim removed.",
@@ -26,5 +34,8 @@
 	"message.claim.selection.reset": "Selection reset.",
 	"message.claim.selection.pos1": "Position 1 set: %s, %s, %s",
 	"message.claim.selection.pos2": "Position 2 set: %s, %s, %s",
-	"message.claim.selection.restart": "Position 1 set (Selection restarted): %s, %s, %s"
+	"message.claim.selection.restart": "Position 1 set (Selection restarted): %s, %s, %s",
+	"message.claim.protection.denied": "\u00a7cThis area is claimed!",
+	"item.claim.land_permit": "Land Permit",
+	"item.claim.claim_compass": "Claim Compass"
 }

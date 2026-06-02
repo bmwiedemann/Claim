@@ -146,6 +146,61 @@ public class ClaimManager
         }
     }
 
+    public static int addTrustedToAllClaims(ServerLevel level, UUID ownerUUID, UUID trustedUUID)
+    {
+        int updated = 0;
+        for (ClaimData claim : claims)
+        {
+            if (!claim.ownerUUID.equals(ownerUUID))
+            {
+                continue;
+            }
+            if (claim.trustedPlayers.contains(trustedUUID))
+            {
+                continue;
+            }
+
+            claim.trustedPlayers.add(trustedUUID);
+            updated++;
+        }
+
+        if (updated > 0)
+        {
+            save(level);
+            for (ServerPlayer player : level.getServer().getPlayerList().getPlayers())
+            {
+                Claim.syncClaims(player);
+            }
+        }
+        return updated;
+    }
+
+    public static int removeTrustedFromAllClaims(ServerLevel level, UUID ownerUUID, UUID trustedUUID)
+    {
+        int updated = 0;
+        for (ClaimData claim : claims)
+        {
+            if (!claim.ownerUUID.equals(ownerUUID))
+            {
+                continue;
+            }
+            if (claim.trustedPlayers.remove(trustedUUID))
+            {
+                updated++;
+            }
+        }
+
+        if (updated > 0)
+        {
+            save(level);
+            for (ServerPlayer player : level.getServer().getPlayerList().getPlayers())
+            {
+                Claim.syncClaims(player);
+            }
+        }
+        return updated;
+    }
+
     public static ClaimData getClaimById(int claimId)
     {
         for (ClaimData claim : claims)

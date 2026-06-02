@@ -56,7 +56,7 @@ public class ModConfig
 
         LAND_PERMIT_ITEM = BUILDER
                 .comment("Permit item id used for claim creation when requireLandPermit is enabled.")
-                .define("landPermitItem", "minecraft:paper");
+                .define("landPermitItem", "claim:land_permit");
 
         LAND_PERMIT_AMOUNT = BUILDER
                 .comment("How many permit items are required per claim.")

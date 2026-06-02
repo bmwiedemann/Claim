@@ -5,8 +5,10 @@ import net.yigitguven.claim.core.SelectionManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
@@ -14,6 +16,7 @@ import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.yigitguven.claim.Claim;
 import net.yigitguven.claim.core.ClaimData;
 import net.yigitguven.claim.core.ClaimManager;
+import net.yigitguven.claim.registry.ModItems;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -53,6 +56,27 @@ public class PlayerEvents
 
             handleClaimChange(player, lastId, currentClaim);
             lastPlayerClaim.put(player.getUUID(), currentClaimId);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onRightClickItem(PlayerInteractEvent.RightClickItem event)
+    {
+        if (event.getLevel().isClientSide) return;
+        if (event.getHand() != InteractionHand.MAIN_HAND) return;
+
+        Player player = event.getEntity();
+        ItemStack stack = player.getMainHandItem();
+        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (!ModItems.CLAIM_COMPASS_ID.equals(itemId))
+        {
+            return;
+        }
+
+        if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer)
+        {
+            serverPlayer.connection.send(new net.yigitguven.claim.network.OpenClaimListPayload());
+            event.setCanceled(true);
         }
     }
 

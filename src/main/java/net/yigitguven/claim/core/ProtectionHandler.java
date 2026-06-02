@@ -106,7 +106,7 @@ public class ProtectionHandler {
 
     private static void notifyPlayer(Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
-            serverPlayer.displayClientMessage(Component.literal("§cThis area is claimed!"), true);
+            serverPlayer.displayClientMessage(Component.translatable("message.claim.protection.denied"), true);
         }
     }
 }

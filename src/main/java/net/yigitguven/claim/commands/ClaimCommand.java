@@ -8,11 +8,14 @@ import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.yigitguven.claim.core.ClaimManager;
 import net.yigitguven.claim.core.SelectionManager;
 import net.yigitguven.claim.config.ModConfig;
 import net.yigitguven.claim.core.ClaimData;
 import net.minecraft.commands.arguments.EntityArgument;
+import net.yigitguven.claim.registry.ModItems;
 
 public class ClaimCommand
 {
@@ -147,6 +150,58 @@ public class ClaimCommand
                             player.connection.send(new net.yigitguven.claim.network.OpenClaimListPayload());
                             return 1;
                         }))
+                .then(Commands.literal("trustall")
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    ServerPlayer target = EntityArgument.getPlayer(context, "player");
+                                    boolean bypass = player.hasPermissions(2) && ModConfig.OP_BYPASS.get();
+
+                                    if (ModConfig.LOCK_CLAIM_TRUSTED.get() && !bypass)
+                                    {
+                                        player.displayClientMessage(Component.translatable("message.claim.trustall.locked"), false);
+                                        return 0;
+                                    }
+
+                                    if (target.getUUID().equals(player.getUUID()))
+                                    {
+                                        player.displayClientMessage(Component.translatable("message.claim.trustall.self"), false);
+                                        return 0;
+                                    }
+
+                                    int updated = ClaimManager.addTrustedToAllClaims(context.getSource().getLevel(), player.getUUID(), target.getUUID());
+                                    if (updated == 0)
+                                    {
+                                        player.displayClientMessage(Component.translatable("message.claim.trustall.none"), false);
+                                        return 0;
+                                    }
+
+                                    player.displayClientMessage(Component.translatable("message.claim.trustall.success", target.getScoreboardName(), updated), false);
+                                    return updated;
+                                })))
+                .then(Commands.literal("untrustall")
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    ServerPlayer target = EntityArgument.getPlayer(context, "player");
+                                    boolean bypass = player.hasPermissions(2) && ModConfig.OP_BYPASS.get();
+
+                                    if (ModConfig.LOCK_CLAIM_TRUSTED.get() && !bypass)
+                                    {
+                                        player.displayClientMessage(Component.translatable("message.claim.trustall.locked"), false);
+                                        return 0;
+                                    }
+
+                                    int updated = ClaimManager.removeTrustedFromAllClaims(context.getSource().getLevel(), player.getUUID(), target.getUUID());
+                                    if (updated == 0)
+                                    {
+                                        player.displayClientMessage(Component.translatable("message.claim.untrustall.none", target.getScoreboardName()), false);
+                                        return 0;
+                                    }
+
+                                    player.displayClientMessage(Component.translatable("message.claim.untrustall.success", target.getScoreboardName(), updated), false);
+                                    return updated;
+                                })))
                 .then(Commands.literal("info")
                         .executes(context -> {
                             ServerPlayer player = context.getSource().getPlayerOrException();
@@ -256,6 +311,50 @@ public class ClaimCommand
                                 })))
                 .then(Commands.literal("admin")
                         .requires(source -> source.hasPermission(2))
+                        .then(Commands.literal("givepermit")
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    return giveItemToPlayer(player, ModItems.LAND_PERMIT_ID, 1);
+                                })
+                                .then(Commands.argument("amount", IntegerArgumentType.integer(1, 64))
+                                        .executes(context -> {
+                                            ServerPlayer player = context.getSource().getPlayerOrException();
+                                            int amount = IntegerArgumentType.getInteger(context, "amount");
+                                            return giveItemToPlayer(player, ModItems.LAND_PERMIT_ID, amount);
+                                        }))
+                                .then(Commands.argument("player", EntityArgument.player())
+                                        .executes(context -> {
+                                            ServerPlayer target = EntityArgument.getPlayer(context, "player");
+                                            return giveItemToPlayer(target, ModItems.LAND_PERMIT_ID, 1);
+                                        })
+                                        .then(Commands.argument("amount", IntegerArgumentType.integer(1, 64))
+                                                .executes(context -> {
+                                                    ServerPlayer target = EntityArgument.getPlayer(context, "player");
+                                                    int amount = IntegerArgumentType.getInteger(context, "amount");
+                                                    return giveItemToPlayer(target, ModItems.LAND_PERMIT_ID, amount);
+                                                })))))
+                        .then(Commands.literal("givecompass")
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    return giveItemToPlayer(player, ModItems.CLAIM_COMPASS_ID, 1);
+                                })
+                                .then(Commands.argument("amount", IntegerArgumentType.integer(1, 64))
+                                        .executes(context -> {
+                                            ServerPlayer player = context.getSource().getPlayerOrException();
+                                            int amount = IntegerArgumentType.getInteger(context, "amount");
+                                            return giveItemToPlayer(player, ModItems.CLAIM_COMPASS_ID, amount);
+                                        }))
+                                .then(Commands.argument("player", EntityArgument.player())
+                                        .executes(context -> {
+                                            ServerPlayer target = EntityArgument.getPlayer(context, "player");
+                                            return giveItemToPlayer(target, ModItems.CLAIM_COMPASS_ID, 1);
+                                        })
+                                        .then(Commands.argument("amount", IntegerArgumentType.integer(1, 64))
+                                                .executes(context -> {
+                                                    ServerPlayer target = EntityArgument.getPlayer(context, "player");
+                                                    int amount = IntegerArgumentType.getInteger(context, "amount");
+                                                    return giveItemToPlayer(target, ModItems.CLAIM_COMPASS_ID, amount);
+                                                })))))
                         .then(Commands.literal("unclaim")
                                 .executes(context -> {
                                     ServerPlayer player = context.getSource().getPlayerOrException();
@@ -272,6 +371,26 @@ public class ClaimCommand
                                         return 0;
                                     }
                                 }))
+
+    private static int giveItemToPlayer(ServerPlayer target, net.minecraft.resources.ResourceLocation itemId, int amount)
+    {
+        Item item = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(itemId);
+        if (item == net.minecraft.world.item.Items.AIR)
+        {
+            target.displayClientMessage(Component.translatable("message.claim.admin.give.missing_item", itemId.toString()), false);
+            return 0;
+        }
+
+        ItemStack stack = new ItemStack(item, amount);
+        boolean added = target.getInventory().add(stack);
+        if (!added)
+        {
+            target.drop(stack, false);
+        }
+
+        target.displayClientMessage(Component.translatable("message.claim.admin.give.success", amount, item.getDescription()), false);
+        return amount;
+    }
                         .then(Commands.literal("clear")
                                 .then(Commands.argument("player", EntityArgument.player())
                                         .executes(context -> {
