@@ -57,9 +57,9 @@ public class ClaimManager
         save(level);
         
         // Sync to all players
-        for (ServerPlayer player : level.getServer().getPlayerList().getPlayers())
+        for (ServerPlayer onlinePlayer : level.getServer().getPlayerList().getPlayers())
         {
-            Claim.syncClaims(player);
+            Claim.syncClaims(onlinePlayer);
         }
         return true;
     }

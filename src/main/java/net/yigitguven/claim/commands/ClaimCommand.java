@@ -52,6 +52,35 @@ public class ClaimCommand
                             player.connection.send(new OpenClaimListPayload());
                             return 1;
                         }))
+                .then(Commands.literal("friend")
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    ServerPlayer target = EntityArgument.getPlayer(context, "player");
+                                    boolean bypass = player.hasPermissions(2) && ModConfig.OP_BYPASS.get();
+
+                                    if (ModConfig.LOCK_CLAIM_TRUSTED.get() && !bypass)
+                                    {
+                                        player.displayClientMessage(Component.translatable("message.claim.trustall.locked"), false);
+                                        return 0;
+                                    }
+
+                                    if (target.getUUID().equals(player.getUUID()))
+                                    {
+                                        player.displayClientMessage(Component.translatable("message.claim.trustall.self"), false);
+                                        return 0;
+                                    }
+
+                                    int updated = ClaimManager.addTrustedToAllClaims(context.getSource().getLevel(), player.getUUID(), target.getUUID());
+                                    if (updated == 0)
+                                    {
+                                        player.displayClientMessage(Component.translatable("message.claim.trustall.none"), false);
+                                        return 0;
+                                    }
+
+                                    player.displayClientMessage(Component.translatable("message.claim.trustall.success", target.getScoreboardName(), updated), false);
+                                    return updated;
+                                })))
                 .then(Commands.literal("trustall")
                         .then(Commands.argument("player", EntityArgument.player())
                                 .executes(context -> {
@@ -82,6 +111,29 @@ public class ClaimCommand
                                     return updated;
                                 })))
                 .then(Commands.literal("untrustall")
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    ServerPlayer target = EntityArgument.getPlayer(context, "player");
+                                    boolean bypass = player.hasPermissions(2) && ModConfig.OP_BYPASS.get();
+
+                                    if (ModConfig.LOCK_CLAIM_TRUSTED.get() && !bypass)
+                                    {
+                                        player.displayClientMessage(Component.translatable("message.claim.trustall.locked"), false);
+                                        return 0;
+                                    }
+
+                                    int updated = ClaimManager.removeTrustedFromAllClaims(context.getSource().getLevel(), player.getUUID(), target.getUUID());
+                                    if (updated == 0)
+                                    {
+                                        player.displayClientMessage(Component.translatable("message.claim.untrustall.none", target.getScoreboardName()), false);
+                                        return 0;
+                                    }
+
+                                    player.displayClientMessage(Component.translatable("message.claim.untrustall.success", target.getScoreboardName(), updated), false);
+                                    return updated;
+                                })))
+                .then(Commands.literal("unfriend")
                         .then(Commands.argument("player", EntityArgument.player())
                                 .executes(context -> {
                                     ServerPlayer player = context.getSource().getPlayerOrException();
@@ -177,6 +229,12 @@ public class ClaimCommand
                             return 0;
                         }))
                 .then(Commands.literal("visit")
+                        .executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            player.connection.send(new OpenClaimListPayload());
+                            player.displayClientMessage(Component.translatable("message.claim.visit.open_list"), false);
+                            return 1;
+                        })
                         .then(Commands.argument("claimId", IntegerArgumentType.integer(0))
                                 .executes(context -> {
                                     ServerPlayer player = context.getSource().getPlayerOrException();
@@ -261,6 +319,7 @@ public class ClaimCommand
         if (!selection.isComplete())
         {
             player.displayClientMessage(Component.translatable("message.claim.selection_required"), false);
+            player.displayClientMessage(Component.translatable("message.claim.selection.hint_help"), false);
             return 0;
         }
 

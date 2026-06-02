@@ -17,6 +17,7 @@
 - New per-claim `visitPos` metadata synced to clients.
 - Added recipe advancement unlocks for land permit and claim compass so recipes naturally appear when players obtain key ingredients.
 - Added `/claim help` command for quick in-game command discovery.
+- Added beginner-friendly `/claim friend <player>` and `/claim unfriend <player>` aliases for trust management across owned claims.
 
 ### Changed
 - Improved visit teleport safety by preferring configured claim visit position and falling back to a safer center search to reduce lava/unsafe teleports.
@@ -26,6 +27,9 @@
 - Updated default permit item config to `claim:land_permit` for first-party survival progression.
 - Improved admin feedback messages for item distribution and claim maintenance actions.
 - Reduced action bar spam from repeated protection-denied messages with a short cooldown.
+- Simplified default onboarding flow for casual friend servers:
+	- `/claim visit` without an ID now opens the claim list directly.
+	- `/claim` without a complete selection now includes a quick help hint.
 
 ### Fixed
 - Fixed a `/claim visit` bug where teleporting to an unloaded claim could resolve to a very low Y level (for example around `-63`) and cause suffocation or unsafe spawns.
